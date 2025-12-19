@@ -28,7 +28,7 @@ export async function POST(request: Request){
         });
 
         if (!signal){
-            console.log("Couldnt find the corresponding Signal for the channelID");
+            console.log(`Couldnt find the corresponding Signal for the channelID, channelID: ${channelID}`);
             return NextResponse.json({error: `Couldn't find the corresponding Signal for the Channel ID: ${channelID}`}, {status:404});
         }
 
