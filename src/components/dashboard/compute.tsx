@@ -333,17 +333,18 @@ export const ComputePage: React.FC<ComputeProps> = ({ user, onLogout }) => {
                     <AlertTriangle className="w-3 h-3" /> External ID (Required)
                 </div>
                 <p className="text-[#E8E4D9]/60 text-xs mb-2">Use this ID when creating the Role (select "Require External ID").</p>
-                <div className="flex items-center gap-2 bg-black/40 p-2 rounded border border-[#E8E4D9]/10">
+               <div className="flex items-center gap-2 bg-black/40 p-2 rounded border border-[#E8E4D9]/10">
                   <code className="flex-1 font-mono text-[#E8E4D9]">{externalId}</code>
-                  <Button 
-                      variant="ghost" 
-                      size="sm" 
+                  
+                  {/* Use a standard HTML button instead of the custom Component */}
+                  <button 
+                      type="button"
                       onClick={() => handleCopy(externalId)} 
-                      // Added text color and increased icon size slightly
-                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 bg-[#E8E4D9]/10"
+                      className="h-8 w-8 flex items-center justify-center rounded hover:bg-[#E8E4D9]/10 transition-colors text-[#C9A66B]"
+                      title="Copy ID"
                   >
                       <Copy className="w-4 h-4" />
-                  </Button>
+                  </button>
               </div>
              </div>
 
