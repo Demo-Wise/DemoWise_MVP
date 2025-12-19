@@ -335,8 +335,8 @@ export const ComputePage: React.FC<ComputeProps> = ({ user, onLogout }) => {
                 <p className="text-[#E8E4D9]/60 text-xs mb-2">Use this ID when creating the Role (select "Require External ID").</p>
                 <div className="flex items-center gap-2 bg-black/40 p-2 rounded border border-[#E8E4D9]/10">
                     <code className="flex-1 font-mono text-[#E8E4D9]">{externalId}</code>
-                    <Button variant="ghost" size="sm" onClick={() => handleCopy(externalId)} className="h-6 w-6 p-0 hover:text-[#C9A66B]">
                     <Copy className="w-3 h-3" />
+                    <Button variant="ghost" size="sm" onClick={() => handleCopy(externalId)} className="h-6 w-6 p-0 hover:text-[#C9A66B]">
                     </Button>
                 </div>
              </div>
