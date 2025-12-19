@@ -327,6 +327,19 @@ export const ComputePage: React.FC<ComputeProps> = ({ user, onLogout }) => {
              <p className="text-[#E8E4D9]/70">
                2. Paste this Trust Policy (Replace <span className="font-mono text-white">YOUR_ACCOUNT_ID</span> with your AWS Account ID):
              </p>
+             {/* EXTERNAL ID BLOCK */}
+             <div className="mb-4 p-3 bg-[#0F292F] border border-[#C9A66B]/30 rounded">
+                <div className="flex items-center gap-2 text-[#C9A66B] text-xs font-mono uppercase tracking-widest mb-1">
+                    <AlertTriangle className="w-3 h-3" /> External ID (Required)
+                </div>
+                <p className="text-[#E8E4D9]/60 text-xs mb-2">Use this ID when creating the Role (select "Require External ID").</p>
+                <div className="flex items-center gap-2 bg-black/40 p-2 rounded border border-[#E8E4D9]/10">
+                    <code className="flex-1 font-mono text-[#E8E4D9]">{externalId}</code>
+                    <Button variant="ghost" size="sm" onClick={() => handleCopy(externalId)} className="h-6 w-6 p-0 hover:text-[#C9A66B]">
+                    <Copy className="w-3 h-3" />
+                    </Button>
+                </div>
+             </div>
 
              {/* Trust Policy JSON */}
              <div className="bg-black/40 p-3 rounded border border-[#E8E4D9]/10 font-mono text-xs text-[#E8E4D9]/60 relative group">
@@ -465,6 +478,20 @@ export const ComputePage: React.FC<ComputeProps> = ({ user, onLogout }) => {
                           placeholder='us-east-1'
                           className="w-full bg-[#061418] border border-[#E8E4D9]/20 rounded p-3 text-[#E8E4D9] focus:border-[#C9A66B] focus:outline-none font-mono"
                       />
+                  </div>
+                  {/* INSTANCE TYPE SELECTOR */}
+                  <div className="mb-4">
+                    <label className="block text-xs font-mono text-[#E8E4D9]/60 uppercase tracking-widest mb-2">
+                      AWS Service Type
+                    </label>
+                    
+                    {/* Ensure you have AWS_SERVICE_TYPES defined and CustomSelect imported */}
+                    <CustomSelect 
+                      value={InstanceType}
+                      onChange={setInstanceType}
+                      options={AWS_SERVICE_TYPES}
+                      placeholder="Select AWS Service..."
+                    />
                   </div>
               </div>
           </div>
