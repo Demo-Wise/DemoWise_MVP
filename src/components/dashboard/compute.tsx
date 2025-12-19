@@ -340,7 +340,7 @@ export const ComputePage: React.FC<ComputeProps> = ({ user, onLogout }) => {
                       size="sm" 
                       onClick={() => handleCopy(externalId)} 
                       // Added text color and increased icon size slightly
-                      className="h-6 w-6 p-0 text-[#E8E4D9] hover:text-[#C9A66B]"
+                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 bg-[#E8E4D9]/10"
                   >
                       <Copy className="w-4 h-4" />
                   </Button>
