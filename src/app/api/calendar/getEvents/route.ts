@@ -41,7 +41,7 @@ export async function GET(req: Request){
             calendarId  : "primary",
             timeMin     : timeMin,
             singleEvents: true,
-            orderBy     : "startTime",
+            // orderBy     : "startTime",
             maxResults  : 2500
             });
         } else {
