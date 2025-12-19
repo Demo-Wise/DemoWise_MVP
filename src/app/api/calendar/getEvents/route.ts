@@ -44,6 +44,8 @@ export async function GET(req: Request){
         const events       = resp.data.items || [];
         const nextSyncToken= resp.data.nextSyncToken;
 
+        console.log("NextSyncToken: ", resp.data.nextSyncToken, resp.data.nextPageToken);
+
         const cleaned      =  events.map(ev => ({
             id          : ev.id,
             summary     : ev.summary || "",
