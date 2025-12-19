@@ -74,7 +74,7 @@ export const MOCK_RESOURCES: ComputeResource[] = [
 export const INITIAL_RULES: OrchestrationRule[] = [
   {
     id: 'rule-1',
-    name: 'Demo Auto-Scale',
+    triggerName: 'Demo Auto-Scale',
     sourceId: 'src-1',
     triggerKeyword: 'Demo',
     targetResourceId: 'res-1',
