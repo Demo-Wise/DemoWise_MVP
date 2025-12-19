@@ -47,6 +47,7 @@ export async function POST(request: Request){
                 {
                     calendarId   : "primary",
                     syncToken    : signalConfig.lastSyncToken,
+                    maxResults   : 2500,
                     singleEvents : true
                 }
             );

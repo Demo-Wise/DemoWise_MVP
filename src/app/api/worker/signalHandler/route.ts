@@ -119,7 +119,7 @@ async function googleCalendarHandler(
         });
     }
 
-    console.log("Successfully synced all the events of the user");
+    console.log("Successfully synced all the events of the user: ", JSON.stringify({refresh_token : refreshToken, channelID    : watchResponse.data.id, resourceID   : watchResponse.data.resourceId, lastSyncToken: nextSyncToken}));
     return jobScheduled;
 }
 
