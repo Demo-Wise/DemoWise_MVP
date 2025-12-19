@@ -51,6 +51,9 @@ async function googleCalendarHandler(
             const start = new Date(startString);
             const end   = new Date(endString);
 
+            const safeStartOffset = startOffsetMinutes || 0;
+            const safeStopOffset  = stopOffsetMinutes  || 0;
+
             const startMessageID = await scheduleComputeJob(
                 event.id!,
                 event.summary,
@@ -62,7 +65,7 @@ async function googleCalendarHandler(
                 computeID,
                 triggerID,
                 "START",
-                new Date(start.getTime() - startOffsetMinutes* 60000)
+                new Date(start.getTime() - safeStartOffset* 60000)
             );
 
             const stopMessageID = await scheduleComputeJob(
@@ -76,7 +79,7 @@ async function googleCalendarHandler(
                 computeID,
                 triggerID,
                 "STOP",
-                new Date(end.getTime() + stopOffsetMinutes* 60000)
+                new Date(end.getTime() + safeStopOffset* 60000)
             );
 
             jobScheduled++;
