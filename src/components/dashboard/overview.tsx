@@ -168,71 +168,167 @@ export const Overview: React.FC<OverviewProps> = ({user, onLogout}) => {
         </button>
     );
 
-    // ... [orchestrationMap helper remains same] ...
-    function orchestrationMap(){
+    function orchestrationMap() {
+        // 1. Filter active lists to match what is rendered in the DOM
+        const activeSources = sources.filter(s => s.connected);
+        const activeResources = resources.filter(r => r.connected);
+
+        // 2. Helper to calculate Y position based on index (assuming ~100px height+gap per item, centered in 300px container)
+        // Center of container is 150px. Item spacing approx 90px.
+        const getY = (index: number, total: number) => {
+            const centerY = 150;
+            const itemHeight = 90; 
+            const startY = centerY - ((total - 1) * itemHeight) / 2;
+            return startY + (index * itemHeight);
+        };
+
         return (
             <div className="glass-panel flex-1 rounded-xl border border-[#E8E4D9]/10 bg-[#061418]/40 p-8 relative overflow-hidden">
-                <h3 className="font-serif text-xl mb-8 flex items-center gap-2">
+                {/* Inline Styles for the flow animation */}
+                <style jsx>{`
+                    @keyframes flow-animation {
+                        to { stroke-dashoffset: -20; }
+                    }
+                    .animate-flow {
+                        animation: flow-animation 1s linear infinite;
+                    }
+                `}</style>
+
+                <h3 className="font-serif text-xl mb-8 flex items-center gap-2 relative z-10">
                     <Workflow className="w-5 h-5 text-[#E8E4D9]/60" />
                     Active Orchestration Map
                 </h3>
 
                 <div className="relative grid grid-cols-3 gap-8 items-center justify-items-center h-[300px]">
+                    
+                    {/* --- CONNECTION LAYER (SVG) --- */}
+                    <svg className="absolute inset-0 w-full h-full pointer-events-none z-0">
+                        {triggers.map((trigger, i) => {
+                            // Find the index of the source and target in the *filtered* lists
+                            const sourceIndex = activeSources.findIndex(s => s.id === trigger.sourceId);
+                            const targetIndex = activeResources.findIndex(r => r.id === trigger.targetResourceId);
+
+                            // If either end is not connected/active, don't draw the line
+                            if (sourceIndex === -1 || targetIndex === -1) return null;
+
+                            const sourceY = getY(sourceIndex, activeSources.length);
+                            const targetY = getY(targetIndex, activeResources.length);
+                            const centerY = 150; // Middle of the AI Engine
+
+                            // Bezier Paths
+                            // Path 1: Source (Left ~16%) -> AI (Center 50%)
+                            // Path 2: AI (Center 50%) -> Target (Right ~84%)
+                            
+                            return (
+                                <g key={trigger.id}>
+                                    {/* Line 1: Signal to AI */}
+                                    <path 
+                                        d={`M 17% ${sourceY} C 30% ${sourceY}, 30% ${centerY}, 45% ${centerY}`}
+                                        fill="none"
+                                        stroke="#C9A66B"
+                                        strokeWidth="2"
+                                        strokeOpacity="0.4"
+                                    />
+                                    <path 
+                                        d={`M 17% ${sourceY} C 30% ${sourceY}, 30% ${centerY}, 45% ${centerY}`}
+                                        fill="none"
+                                        stroke="#C9A66B"
+                                        strokeWidth="2"
+                                        strokeDasharray="4,4"
+                                        className="animate-flow"
+                                    />
+
+                                    {/* Line 2: AI to Compute */}
+                                    <path 
+                                        d={`M 55% ${centerY} C 70% ${centerY}, 70% ${targetY}, 83% ${targetY}`}
+                                        fill="none"
+                                        stroke="#C9A66B"
+                                        strokeWidth="2"
+                                        strokeOpacity="0.4"
+                                    />
+                                    <path 
+                                        d={`M 55% ${centerY} C 70% ${centerY}, 70% ${targetY}, 83% ${targetY}`}
+                                        fill="none"
+                                        stroke="#C9A66B"
+                                        strokeWidth="2"
+                                        strokeDasharray="4,4"
+                                        className="animate-flow"
+                                    />
+                                </g>
+                            );
+                        })}
+                    </svg>
+
+                    {/* Background Center Line (Subtle) */}
                     <div className="absolute top-1/2 left-0 w-full h-px bg-[#E8E4D9]/5 -z-10 transform -translate-y-1/2"></div>
 
-                    {/* Signal */}
-                    <div className="flex flex-col gap-4 items-center w-full">
+                    {/* Column 1: Signal */}
+                    <div className="flex flex-col gap-4 items-center w-full justify-center z-10">
                         <div className="text-xs font-mono text-[#E8E4D9]/40 uppercase tracking-widest mb-2">Signal</div>
-                        {sources.filter(s => s.connected).map(source => (
-                            <div key={source.id} className="w-full max-w-[180px] p-4 bg-[#0F292F] border border-[#E8E4D9]/20 rounded-lg flex items-center gap-3 shadow-lg relative z-10">
-                            <div className="p-2 bg-[#061418] rounded">
-                                {source.type === 'GOOGLE_CALENDAR' ? <Calendar className="w-4 h-4 text-[#C9A66B]"/> : <MessageSquare className="w-4 h-4 text-blue-400"/>}
-                            </div>
-                            <span className="text-sm font-mono font-medium">{source.name}</span>
-                            <div className="absolute -right-1 w-2 h-2 bg-[#E8E4D9]/40 rounded-full"></div>
+                        {activeSources.map(source => (
+                            <div key={source.id} className="w-full max-w-[180px] p-4 bg-[#0F292F] border border-[#E8E4D9]/20 rounded-lg flex items-center gap-3 shadow-lg relative">
+                                <div className="p-2 bg-[#061418] rounded">
+                                    {source.type === 'GOOGLE_CALENDAR' ? <Calendar className="w-4 h-4 text-[#C9A66B]"/> : <MessageSquare className="w-4 h-4 text-blue-400"/>}
+                                </div>
+                                <span className="text-sm font-mono font-medium">{source.name}</span>
+                                
+                                {/* Connector Dot (Right Side) */}
+                                <div className={`absolute -right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 bg-[#061418] border border-[#C9A66B] rounded-full z-20 
+                                    ${triggers.some(t => t.sourceId === source.id) ? 'shadow-[0_0_8px_#C9A66B]' : 'opacity-50'}`}>
+                                    <div className="w-full h-full bg-[#C9A66B] rounded-full transform scale-50"></div>
+                                </div>
                             </div>
                         ))}
-                         {sources.every(s => !s.connected) && (
+                         {activeSources.length === 0 && (
                             <div className="p-4 border border-dashed border-[#E8E4D9]/20 rounded text-[#E8E4D9]/30 text-sm">No Signals</div>
                         )}
                     </div>
 
-                    {/* Logic */}
-                    <div className="flex flex-col items-center justify-center ai-logic">
+                    {/* Column 2: Logic (Center) */}
+                    <div className="flex flex-col items-center justify-center ai-logic z-10">
                         <div className="text-xs font-mono text-[#E8E4D9]/40 uppercase tracking-widest mb-4">Logic</div>
-                        <div className="w-32 h-32 rounded-full border border-[#C9A66B]/30 bg-[#0F292F]/80 backdrop-blur flex flex-col items-center justify-center relative animate-pulse">
-                            <Zap className="w-8 h-8 text-[#C9A66B] mb-2" />
+                        <div className={`w-32 h-32 rounded-full border border-[#C9A66B]/30 bg-[#0F292F]/80 backdrop-blur flex flex-col items-center justify-center relative 
+                            ${triggers.length > 0 ? 'shadow-[0_0_30px_rgba(201,166,107,0.15)]' : ''}`}>
+                            
+                            <Zap className={`w-8 h-8 mb-2 transition-colors ${triggers.length > 0 ? 'text-[#C9A66B] animate-pulse' : 'text-[#E8E4D9]/20'}`} />
                             <span className="text-xs font-mono text-[#C9A66B]">AI ENGINE</span>
-                            <div className="absolute -left-4 top-1/2 w-4 h-px bg-[#C9A66B]/30"></div>
-                            <div className="absolute -right-4 top-1/2 w-4 h-px bg-[#C9A66B]/30"></div>
+                            
+                            {/* Static Connectors on Circle */}
+                            <div className="absolute -left-1 top-1/2 -translate-y-1/2 w-2 h-2 bg-[#C9A66B] rounded-full shadow-[0_0_10px_#C9A66B]"></div>
+                            <div className="absolute -right-1 top-1/2 -translate-y-1/2 w-2 h-2 bg-[#C9A66B] rounded-full shadow-[0_0_10px_#C9A66B]"></div>
                         </div>
                     </div>
 
-                    {/* Compute */}
-                    <div className="flex flex-col gap-4 items-center w-full">
+                    {/* Column 3: Compute */}
+                    <div className="flex flex-col gap-4 items-center w-full justify-center z-10">
                         <div className="text-xs font-mono text-[#E8E4D9]/40 uppercase tracking-widest mb-2">Compute</div>
-                        {resources.filter(r => r.connected).map(res => (
-                            <div key={res.id} className={`w-full max-w-[180px] p-4 border rounded-lg flex items-center gap-3 shadow-lg relative z-10 transition-colors ${
+                        {activeResources.map(res => (
+                            <div key={res.id} className={`w-full max-w-[180px] p-4 border rounded-lg flex items-center gap-3 shadow-lg relative transition-colors ${
                             res.status === ComputeStatus.ACTIVE 
                                 ? 'bg-[#0F292F] border-emerald-500/50 shadow-[0_0_15px_rgba(16,185,129,0.2)]' 
                                 : 'bg-[#061418] border-[#E8E4D9]/20'
                             }`}>
-                            <div className={`absolute -left-1 w-2 h-2 rounded-full ${res.status === ComputeStatus.ACTIVE ? 'bg-emerald-400' : 'bg-[#E8E4D9]/40'}`}></div>
-                            <div className="p-2 bg-[#061418] rounded border border-[#E8E4D9]/10">
-                                <Server className={`w-4 h-4 ${res.status === ComputeStatus.ACTIVE ? 'text-emerald-400' : 'text-[#E8E4D9]/40'}`}/>
-                            </div>
-                            <div>
-                                <div className="text-sm font-mono font-medium">{res.name}</div>
-                                <div className="text-[10px] font-mono text-[#E8E4D9]/50">{res.instanceType}</div>
-                            </div>
+                                {/* Connector Dot (Left Side) */}
+                                <div className={`absolute -left-1.5 top-1/2 -translate-y-1/2 w-3 h-3 bg-[#061418] border rounded-full z-20 
+                                    ${triggers.some(t => t.targetResourceId === res.id) ? 'border-[#C9A66B] shadow-[0_0_8px_#C9A66B]' : 'border-[#E8E4D9]/40 opacity-50'}`}>
+                                    <div className={`w-full h-full rounded-full transform scale-50 ${triggers.some(t => t.targetResourceId === res.id) ? 'bg-[#C9A66B]' : 'bg-[#E8E4D9]/40'}`}></div>
+                                </div>
+
+                                <div className="p-2 bg-[#061418] rounded border border-[#E8E4D9]/10">
+                                    <Server className={`w-4 h-4 ${res.status === ComputeStatus.ACTIVE ? 'text-emerald-400' : 'text-[#E8E4D9]/40'}`}/>
+                                </div>
+                                <div>
+                                    <div className="text-sm font-mono font-medium">{res.name}</div>
+                                    <div className="text-[10px] font-mono text-[#E8E4D9]/50">{res.instanceType}</div>
+                                </div>
                             </div>
                         ))}
-                         {resources.every(r => !r.connected) && (
+                         {activeResources.length === 0 && (
                             <div className="p-4 border border-dashed border-[#E8E4D9]/20 rounded text-[#E8E4D9]/30 text-sm">No Compute</div>
                         )}
                     </div>
                 </div>
-                </div>
+            </div>
         );
     }
 
