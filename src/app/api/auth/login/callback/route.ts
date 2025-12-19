@@ -13,7 +13,7 @@ async function fetchUserProfile(accessToken:string){
         const profile = await res.json();
         
         const newUser: User = {
-        id: profile.sub,
+        userID: profile.sub,
         name: profile.name,
         email: profile.email,
         avatar: profile.picture
