@@ -24,6 +24,8 @@ import {
   AlertTriangle,
   Copy, 
   ExternalLink,
+  Key,
+  UserIcon,
   Lock,
   Trash,
   Cloud
@@ -62,12 +64,14 @@ export const ComputePage: React.FC<ComputeProps> = ({ user, onLogout }) => {
     const [ newResourceName, setNewResourceName ]   = useState<string>('');
 
     // AWS specifics
-    const [ newComputeARN, setComputeARN ]    = useState<string>('');
-    const [ newAccountID, setAccountID ]      = useState<string>('');
-    const [ InstanceID, setInstanceID ]       = useState<string>("");
-    const [ InstanceType, setInstanceType ]   = useState<string>("");
-    const [ region, setRegion]                = useState<string>("");
-    const [externalId, setExternalId]         = useState('');
+    const [ newComputeARN, setComputeARN ]        = useState<string>('');
+    const [ newAccountID, setAccountID ]          = useState<string>('');
+    const [ InstanceID, setInstanceID ]           = useState<string>("");
+    const [ InstanceType, setInstanceType ]       = useState<string>("");
+    const [ region, setRegion]                    = useState<string>("");
+    const [externalId, setExternalId]             = useState('');
+    const [ accessKeyId, setAccessKeyId ]         = useState<string>("");
+    const [ secretAccessKey, setSecretAccessKey ] = useState<string>("");
 
     const router = useRouter();
 
@@ -136,11 +140,13 @@ export const ComputePage: React.FC<ComputeProps> = ({ user, onLogout }) => {
 
       if (newResourceType === "AWS"){
         config = {
-            arn         : newComputeARN,
-            accountID   : newAccountID,
-            instanceID  : InstanceID,
-            instanceType: InstanceType,
-            region      : region
+            arn             : newComputeARN,
+            accountID       : newAccountID,
+            instanceID      : InstanceID,
+            instanceType    : InstanceType,
+            region          : region,
+            accessKeyId     : accessKeyId,
+            secretAccessKey : secretAccessKey
 
           };
       }
@@ -171,6 +177,8 @@ export const ComputePage: React.FC<ComputeProps> = ({ user, onLogout }) => {
           setRegion('');
           setStep(1);
           setExternalId("");
+          setAccessKeyId("");
+          setSecretAccessKey("");
         }
 
         setNewResourceType(null);
@@ -244,256 +252,281 @@ export const ComputePage: React.FC<ComputeProps> = ({ user, onLogout }) => {
           setExternalId(crypto.randomUUID()); 
         }, [currentView]);
 
-    const renderAddSource= () => {
-              // 1: Info/Gen ID, 2: Input Details
-        // The "Handshake" ID (External ID)
-        // We generate this once when the component mounts so it stays consisten
-        const handleCopy = (text: string) => {
-          navigator.clipboard.writeText(text);
-          // Optional: Add a toast notification here
-        };
+    const renderAddSource = () => {
+    // --- Helper for copying text ---
+    const handleCopy = (text: string) => {
+      navigator.clipboard.writeText(text);
+      // Optional: toast.success("Copied to clipboard");
+    };
 
-        const renderStepOne = () => (
-          <div className="glass-panel p-8 rounded-xl border border-[#E8E4D9]/10 animate-fade-in space-y-6">
+    // --- STEP 1: INSTRUCTIONS (User Identity + Role Permissions) ---
+    const renderStepOne = () => (
+      <div className="glass-panel p-8 rounded-xl border border-[#E8E4D9]/10 animate-fade-in space-y-8">
+        
+        {/* Header */}
+        <div className="flex items-center gap-3 pb-6 border-b border-[#E8E4D9]/10">
+          <div className="bg-[#C9A66B]/20 p-2 rounded-lg">
+            <Shield className="w-6 h-6 text-[#C9A66B]" />
+          </div>
+          <div>
+            <h3 className="font-medium text-lg">Step 1: Configure AWS Access</h3>
+            <p className="text-sm text-[#E8E4D9]/50">Create an <strong>IAM User</strong> (Identity) and an <strong>IAM Role</strong> (Permission).</p>
+          </div>
+        </div>
+
+        {/* PART A: CREATE USER */}
+        <div className="space-y-4">
+          <h4 className="font-medium flex items-center gap-2 text-[#E8E4D9]">
+            <span className="bg-[#E8E4D9]/10 w-6 h-6 rounded-full flex items-center justify-center text-xs">1</span>
+            Create IAM User (The Identity)
+          </h4>
+          <div className="bg-[#061418] p-4 rounded border border-[#E8E4D9]/10 text-sm space-y-3">
+            <p className="text-[#E8E4D9]/70">
+              1. Go to <a href="https://console.aws.amazon.com/iam/home#/users/create" target="_blank" className="text-[#C9A66B] hover:underline">IAM Users</a> and create a user named <span className="font-mono text-white">VelaiAgent</span>.
+            </p>
+            <p className="text-[#E8E4D9]/70">
+              2. Attach this <strong>Inline Policy</strong> to allow it to assume roles:
+            </p>
             
-            {/* Header */}
-            <div className="flex items-center gap-3 pb-6 border-b border-[#E8E4D9]/10">
-              <div className="bg-[#C9A66B]/20 p-2 rounded-lg">
-                <Shield className="w-6 h-6 text-[#C9A66B]" />
-              </div>
-              <div>
-                <h3 className="font-medium text-lg">Step 1: Create Secure Access</h3>
-                <p className="text-sm text-[#E8E4D9]/50">Create a permission role in your AWS account.</p>
-              </div>
-            </div>
-
-            {/* Instruction 1: External ID */}
-            <div className="bg-[#061418] border border-[#C9A66B]/30 rounded-lg p-5 relative overflow-hidden">
-              <div className="absolute top-0 right-0 p-2 opacity-10">
-                <Lock className="w-24 h-24 text-[#C9A66B]" />
-              </div>
-              
-              <h4 className="text-[#C9A66B] font-mono text-sm uppercase tracking-widest mb-2 flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4" /> Crucial Security Step
-              </h4>
-              <p className="text-[#E8E4D9]/80 text-sm mb-4 max-w-md">
-                When creating the IAM Role, select <strong>"Another AWS Account"</strong> and paste this <strong>External ID</strong> in the options. This prevents anyone else from using your role.
-              </p>
-
-              <div className="flex items-center gap-2 bg-black/40 p-3 rounded border border-[#C9A66B]/20">
-                <code className="flex-1 font-mono text-[#C9A66B] text-lg">{externalId}</code>
-                <Button variant="ghost" size="sm" onClick={() => handleCopy(externalId)} className="hover:bg-[#C9A66B]/20 hover:text-[#C9A66B]">
-                  <Copy className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
-
-            {/* Instruction 2: Trust Policy */}
-            <div>
-              <h4 className="font-medium mb-3 flex items-center gap-2 text-[#E8E4D9]">
-                <span className="bg-[#E8E4D9]/10 w-6 h-6 rounded-full flex items-center justify-center text-xs">A</span>
-                AWS Account ID to Trust
-              </h4>
-              <div>
-                {/* <label className="block text-xs font-mono text-[#E8E4D9]/60 uppercase tracking-widest mb-2">Compute Name</label> */}
-                <input 
-                  type="text" 
-                  value={newAccountID}
-                  onChange={(e) => setAccountID(e.target.value)}
-                  placeholder='e.g., "123456789012"'
-                  className="w-full bg-[#061418] border border-[#E8E4D9]/20 rounded p-3 text-[#E8E4D9] focus:border-[#C9A66B] focus:outline-none font-mono"
-                />
-              </div>
-              <p className="text-xs text-[#E8E4D9]/40 mt-2">Copy Paste this from IAM console.</p>
-            </div>
-
-            {/* Instruction 3: Permissions */}
-            <div>
-              <h4 className="font-medium mb-3 flex items-center gap-2 text-[#E8E4D9]">
-                <span className="bg-[#E8E4D9]/10 w-6 h-6 rounded-full flex items-center justify-center text-xs">B</span>
-                Permissions to Attach
-              </h4>
-              <div className="bg-[#061418] p-4 rounded border border-[#E8E4D9]/10 font-mono text-xs text-[#E8E4D9]/60 relative group">
-                  <pre>{`{
-        "Version": "2012-10-17",
-        "Statement": [
-          {
-            "Effect": "Allow",
-            "Action": [
-              "ec2:StartInstances",
-              "ec2:StopInstances",
-              "ec2:DescribeInstances"
-            ],
-            "Resource": "*"
-          }
-        ]
-      }`}</pre>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-[#E8E4D9]/10 hover:bg-[#E8E4D9]/20"
-                  onClick={() => handleCopy(`{ "Version": "2012-10-17", "Statement": [ { "Effect": "Allow", "Action": [ "ec2:StartInstances", "ec2:StopInstances", "ec2:DescribeInstances" ], "Resource": "*" } ] }`)}
-                >
-                  <Copy className="w-3 h-3 mr-1" /> Copy JSON
-                </Button>
-              </div>
-            </div>
-
-            <div className="pt-4 flex justify-between items-center border-t border-[#E8E4D9]/10">
-              <a href="https://console.aws.amazon.com/iam/home#/roles/create" target="_blank" rel="noreferrer" className="text-xs text-[#C9A66B] flex items-center gap-1 hover:underline">
-                  Open AWS IAM Console <ExternalLink className="w-3 h-3" />
-              </a>
-              <Button onClick={() => setStep(2)} className="bg-[#C9A66B] text-black hover:bg-[#C9A66B]/90"  disabled={!newAccountID}>
-                I have created the role <ArrowRight className="w-4 h-4 ml-2"/>
+            <div className="bg-black/40 p-3 rounded border border-[#E8E4D9]/10 font-mono text-xs text-[#E8E4D9]/60 relative group">
+              <pre>{`{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": "sts:AssumeRole",
+      "Resource": "*"
+    }
+  ]
+}`}</pre>
+               <Button variant="ghost" size="sm" className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 bg-[#E8E4D9]/10" onClick={() => handleCopy(`{ "Version": "2012-10-17", "Statement": [ { "Effect": "Allow", "Action": "sts:AssumeRole", "Resource": "*" } ] }`)}>
+                <Copy className="w-3 h-3" />
               </Button>
             </div>
-          </div>
-        );
 
-        const renderStepTwo = () => (
-          <div className="glass-panel p-8 rounded-xl border border-[#E8E4D9]/10 animate-fade-in space-y-6">
-            <div className="flex items-center gap-3 pb-6 border-b border-[#E8E4D9]/10">
-              <div className="bg-[#C9A66B]/20 p-2 rounded-lg">
-                <Server className="w-6 h-6 text-[#C9A66B]" />
-              </div>
-              <div>
-                <h3 className="font-medium text-lg">Step 2: Connect Instance</h3>
-                <p className="text-sm text-[#E8E4D9]/50">Enter the details of the Role and EC2 instance.</p>
-              </div>
+            <p className="text-[#E8E4D9]/70">
+              3. Go to <strong>Security Credentials</strong> for this user and create an <strong>Access Key</strong>.
+              <br/><span className="text-[#C9A66B]">Keep the Access Key ID and Secret Key ready for Step 2.</span>
+            </p>
+          </div>
+        </div>
+
+        <div className="w-full h-px bg-[#E8E4D9]/10 my-4"></div>
+
+        {/* PART B: CREATE ROLE */}
+        <div className="space-y-4">
+          <h4 className="font-medium flex items-center gap-2 text-[#E8E4D9]">
+            <span className="bg-[#E8E4D9]/10 w-6 h-6 rounded-full flex items-center justify-center text-xs">2</span>
+            Create IAM Role (The Permissions)
+          </h4>
+          
+          <div className="bg-[#061418] p-4 rounded border border-[#E8E4D9]/10 text-sm space-y-3">
+             <p className="text-[#E8E4D9]/70">
+              1. Create a <strong>Role</strong> with <strong>"Custom Trust Policy"</strong>.
+             </p>
+             <p className="text-[#E8E4D9]/70">
+               2. Paste this Trust Policy (Replace <span className="font-mono text-white">YOUR_ACCOUNT_ID</span> with your AWS Account ID):
+             </p>
+
+             {/* Trust Policy JSON */}
+             <div className="bg-black/40 p-3 rounded border border-[#E8E4D9]/10 font-mono text-xs text-[#E8E4D9]/60 relative group">
+              <pre>{`{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "arn:aws:iam::YOUR_ACCOUNT_ID:user/VelaiAgent"
+      },
+      "Action": "sts:AssumeRole",
+      "Condition": {
+        "StringEquals": {
+          "sts:ExternalId": "${externalId}"
+        }
+      }
+    }
+  ]
+}`}</pre>
+               <Button variant="ghost" size="sm" className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 bg-[#E8E4D9]/10" onClick={() => handleCopy(`{ "Version": "2012-10-17", "Statement": [ { "Effect": "Allow", "Principal": { "AWS": "arn:aws:iam::YOUR_ACCOUNT_ID:user/VelaiAgent" }, "Action": "sts:AssumeRole", "Condition": { "StringEquals": { "sts:ExternalId": "${externalId}" } } } ] }`)}>
+                <Copy className="w-3 h-3" />
+              </Button>
             </div>
 
-            <div className="space-y-4">
+            <p className="text-[#E8E4D9]/70">
+              3. <strong>Permissions:</strong> Add the inline policy for EC2 control (Start/Stop instances).
+            </p>
+          </div>
+        </div>
+
+        <div className="pt-4 flex justify-end items-center border-t border-[#E8E4D9]/10">
+          <Button onClick={() => setStep(2)} className="bg-[#C9A66B] text-black hover:bg-[#C9A66B]/90">
+            I have the Keys and ARN <ArrowRight className="w-4 h-4 ml-2"/>
+          </Button>
+        </div>
+      </div>
+    );
+
+    // --- STEP 2: CREDENTIAL INPUTS ---
+    const renderStepTwo = () => (
+      <div className="glass-panel p-8 rounded-xl border border-[#E8E4D9]/10 animate-fade-in space-y-6">
+        <div className="flex items-center gap-3 pb-6 border-b border-[#E8E4D9]/10">
+          <div className="bg-[#C9A66B]/20 p-2 rounded-lg">
+            <Key className="w-6 h-6 text-[#C9A66B]" />
+          </div>
+          <div>
+            <h3 className="font-medium text-lg">Step 2: Enter Credentials</h3>
+            <p className="text-sm text-[#E8E4D9]/50">Provide the User Keys and Role details.</p>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          
+          {/* SECTION 1: USER CREDENTIALS */}
+          <div className="space-y-4 border-b border-[#E8E4D9]/10 pb-6">
+              <h4 className="text-xs font-mono text-[#C9A66B] uppercase tracking-widest flex items-center gap-2">
+                  <UserIcon className="w-3 h-3" /> IAM User Details
+              </h4>
+              
               <div>
-                <label className="block text-xs font-mono text-[#E8E4D9]/60 uppercase tracking-widest mb-2">Compute Name</label>
-                <input 
-                  type="text" 
-                  value={newResourceName}
-                  onChange={(e) => setNewResourceName(e.target.value)}
-                  placeholder='e.g., "Production GPU Cluster"'
-                  className="w-full bg-[#061418] border border-[#E8E4D9]/20 rounded p-3 text-[#E8E4D9] focus:border-[#C9A66B] focus:outline-none font-mono"
-                />
+                  <label className="block text-xs font-mono text-[#E8E4D9]/60 uppercase tracking-widest mb-2">Access Key ID</label>
+                  <div className="relative">
+                      <input 
+                      type="text" 
+                      value={accessKeyId}
+                      onChange={(e) => setAccessKeyId(e.target.value)}
+                      placeholder='AKIA................'
+                      className="w-full bg-[#061418] border border-[#E8E4D9]/20 rounded p-3 text-[#E8E4D9] focus:border-[#C9A66B] focus:outline-none font-mono pl-10"
+                      />
+                      <Key className="w-4 h-4 text-[#E8E4D9]/30 absolute left-3 top-3.5" />
+                  </div>
               </div>
 
               <div>
-                <label className="block text-xs font-mono text-[#E8E4D9]/60 uppercase tracking-widest mb-2">Role ARN</label>
-                <input 
-                  type="text" 
-                  value={newComputeARN}
-                  onChange={(e) => setComputeARN(e.target.value)}
-                  placeholder='arn:aws:iam::123456789:role/MyVelaiRole'
-                  className="w-full bg-[#061418] border border-[#E8E4D9]/20 rounded p-3 text-[#E8E4D9] focus:border-[#C9A66B] focus:outline-none font-mono"
-                />
-                <p className="text-[10px] text-[#E8E4D9]/40 mt-1">The ARN of the role you just created.</p>
+                  <label className="block text-xs font-mono text-[#E8E4D9]/60 uppercase tracking-widest mb-2">Secret Access Key</label>
+                  <div className="relative">
+                      <input 
+                      type="password" 
+                      value={secretAccessKey}
+                      onChange={(e) => setSecretAccessKey(e.target.value)}
+                      placeholder='........................................'
+                      className="w-full bg-[#061418] border border-[#E8E4D9]/20 rounded p-3 text-[#E8E4D9] focus:border-[#C9A66B] focus:outline-none font-mono pl-10"
+                      />
+                      <Lock className="w-4 h-4 text-[#E8E4D9]/30 absolute left-3 top-3.5" />
+                  </div>
+              </div>
+          </div>
+
+          {/* SECTION 2: ROLE & INSTANCE */}
+          <div className="space-y-4">
+              <h4 className="text-xs font-mono text-[#C9A66B] uppercase tracking-widest flex items-center gap-2 mt-2">
+                  <Server className="w-3 h-3" /> Resource Details
+              </h4>
+
+              <div>
+                  <label className="block text-xs font-mono text-[#E8E4D9]/60 uppercase tracking-widest mb-2">Compute Name</label>
+                  <input 
+                      type="text" 
+                      value={newResourceName}
+                      onChange={(e) => setNewResourceName(e.target.value)}
+                      placeholder='e.g., "Production GPU Cluster"'
+                      className="w-full bg-[#061418] border border-[#E8E4D9]/20 rounded p-3 text-[#E8E4D9] focus:border-[#C9A66B] focus:outline-none font-mono"
+                  />
+              </div>
+
+              <div>
+                  <label className="block text-xs font-mono text-[#E8E4D9]/60 uppercase tracking-widest mb-2">Role ARN</label>
+                  <input 
+                      type="text" 
+                      value={newComputeARN}
+                      onChange={(e) => setComputeARN(e.target.value)}
+                      placeholder='arn:aws:iam::123456789:role/MyVelaiRole'
+                      className="w-full bg-[#061418] border border-[#E8E4D9]/20 rounded p-3 text-[#E8E4D9] focus:border-[#C9A66B] focus:outline-none font-mono"
+                  />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                   <div>
-                  <label className="block text-xs font-mono text-[#E8E4D9]/60 uppercase tracking-widest mb-2">Instance ID</label>
-                  <input 
-                      type="text" 
-                      value={InstanceID}
-                      onChange={(e) => setInstanceID(e.target.value)}
-                      placeholder='i-0abcdef123456'
-                      className="w-full bg-[#061418] border border-[#E8E4D9]/20 rounded p-3 text-[#E8E4D9] focus:border-[#C9A66B] focus:outline-none font-mono"
-                  />
+                      <label className="block text-xs font-mono text-[#E8E4D9]/60 uppercase tracking-widest mb-2">Instance ID</label>
+                      <input 
+                          type="text" 
+                          value={InstanceID}
+                          onChange={(e) => setInstanceID(e.target.value)}
+                          placeholder='i-0abcdef123456'
+                          className="w-full bg-[#061418] border border-[#E8E4D9]/20 rounded p-3 text-[#E8E4D9] focus:border-[#C9A66B] focus:outline-none font-mono"
+                      />
                   </div>
 
                   <div>
-                  <label className="block text-xs font-mono text-[#E8E4D9]/60 uppercase tracking-widest mb-2">Region</label>
-                  <input 
-                      type="text" 
-                      value={region}
-                      onChange={(e) => setRegion(e.target.value)}
-                      placeholder='us-east-1'
-                      className="w-full bg-[#061418] border border-[#E8E4D9]/20 rounded p-3 text-[#E8E4D9] focus:border-[#C9A66B] focus:outline-none font-mono"
-                  />
+                      <label className="block text-xs font-mono text-[#E8E4D9]/60 uppercase tracking-widest mb-2">Region</label>
+                      <input 
+                          type="text" 
+                          value={region}
+                          onChange={(e) => setRegion(e.target.value)}
+                          placeholder='us-east-1'
+                          className="w-full bg-[#061418] border border-[#E8E4D9]/20 rounded p-3 text-[#E8E4D9] focus:border-[#C9A66B] focus:outline-none font-mono"
+                      />
                   </div>
               </div>
-
-              {/* AWS Service Type Selector */}
-              <div className="mb-4">
-                <label className="block text-xs font-mono text-[#E8E4D9]/60 uppercase tracking-widest mb-2">
-                  AWS Service
-                </label>
-                
-                <CustomSelect 
-                  value={InstanceType}
-                  onChange={setInstanceType}
-                  options={AWS_SERVICE_TYPES}
-                  placeholder="Select AWS Service..."
-                />
-                
-                <p className="text-[10px] text-[#E8E4D9]/40 mt-2">
-                  Currently, only EC2 Start/Stop operations are supported.
-                </p>
-              </div>
-
-              <div className="pt-6 flex justify-between items-center">
-                  <Button variant="ghost" onClick={() => setStep(1)} className="text-[#E8E4D9]/50 hover:text-[#E8E4D9]">
-                      Back to Instructions
-                  </Button>
-                  <Button 
-                      onClick={() => {saveCredentials()}}
-                      className="bg-[#C9A66B] text-black hover:bg-[#C9A66B]/90"
-                      disabled={!newResourceName || !newComputeARN || !InstanceID || !region}
-                  >
-                      Connect Compute
-                  </Button>
-              </div>
-            </div>
           </div>
-        );
 
-        return (
-          <div className="max-w-2xl mx-auto">
-            <div className="mb-8">
-              <Button variant="ghost" onClick={() => setCurrentView('COMPUTE')} className="pl-0 gap-2 mb-4">
-                <ArrowRight className="w-4 h-4 rotate-180" /> Back to Compute
+          <div className="pt-6 flex justify-between items-center">
+              <Button variant="ghost" onClick={() => setStep(1)} className="text-[#E8E4D9]/50 hover:text-[#E8E4D9]">
+                  Back to Instructions
               </Button>
-              <h2 className="font-serif text-3xl mb-2">Connect New Compute</h2>
-            </div>
-
-            {/* Provider Selector - Only show if in step 1 */}
-            {step === 1 && (
-                <div className="grid grid-cols-2 gap-4 mb-8">
-                  <button
-                  onClick={() => setNewResourceType('AWS')}
-                  className={`p-6 rounded-xl border text-left transition-all ${
-                      newResourceType === 'AWS'
-                      ? 'bg-[#C9A66B]/10 border-[#C9A66B]'
-                      : 'bg-[#0F292F]/40 border-[#E8E4D9]/10 hover:border-[#E8E4D9]/30'
-                  }`}
-                  >
-                  <Server className={`w-8 h-8 mb-4 ${newResourceType === 'AWS' ? 'text-[#C9A66B]' : 'text-[#E8E4D9]/60'}`} />
-                  <div className="font-medium text-lg font-serif">Amazon Web Services (AWS)</div>
-                  <div className="text-sm text-[#E8E4D9]/50 mt-2 font-mono">Manage EC2 instances via IAM Role.</div>
-                  </button>
-
-                  <button
-                  onClick={() => setNewResourceType('GCP')}
-                  className={`p-6 rounded-xl border text-left transition-all opacity-60 cursor-not-allowed ${
-                      newResourceType === 'GCP'
-                      ? 'bg-[#C9A66B]/10 border-[#C9A66B]'
-                      : 'bg-[#0F292F]/40 border-[#E8E4D9]/10'
-                  }`}
-                  >
-                  <Cloud className="w-8 h-8 mb-4 text-[#E8E4D9]/60" />
-                  <div className="font-medium text-lg font-serif">Google Cloud Platform (GCP)</div>
-                  <div className="text-sm text-[#E8E4D9]/50 mt-2 font-mono">Coming soon.</div>
-                  </button>
-              </div>
-            )}
-
-            {newResourceType === 'AWS' ? (
-                step === 1 ? renderStepOne() : renderStepTwo()
-            ) : (
-                <div className="glass-panel p-8 text-center text-[#E8E4D9]/40 font-mono">
-                    GCP integration is currently under development.
-                </div>
-            )}
+              <Button 
+                  onClick={() => saveCredentials()}
+                  className="bg-[#C9A66B] text-black hover:bg-[#C9A66B]/90"
+                  disabled={!newResourceName || !newComputeARN || !InstanceID || !region || !accessKeyId || !secretAccessKey}
+              >
+                  Connect Compute
+              </Button>
           </div>
-        );
-      };
+        </div>
+      </div>
+    );
+
+    // --- MAIN RENDER ---
+    return (
+      <div className="max-w-2xl mx-auto">
+        <div className="mb-8">
+          <Button variant="ghost" onClick={() => setCurrentView('COMPUTE')} className="pl-0 gap-2 mb-4">
+            <ArrowRight className="w-4 h-4 rotate-180" /> Back to Compute
+          </Button>
+          <h2 className="font-serif text-3xl mb-2">Connect New Compute</h2>
+        </div>
+
+        {step === 1 && (
+          <div className="grid grid-cols-2 gap-4 mb-8">
+              <button
+              onClick={() => setNewResourceType('AWS')}
+              className={`p-6 rounded-xl border text-left transition-all ${
+                  newResourceType === 'AWS'
+                  ? 'bg-[#C9A66B]/10 border-[#C9A66B]'
+                  : 'bg-[#0F292F]/40 border-[#E8E4D9]/10 hover:border-[#E8E4D9]/30'
+              }`}
+              >
+              <Server className={`w-8 h-8 mb-4 ${newResourceType === 'AWS' ? 'text-[#C9A66B]' : 'text-[#E8E4D9]/60'}`} />
+              <div className="font-medium text-lg font-serif">Amazon Web Services (AWS)</div>
+              <div className="text-sm text-[#E8E4D9]/50 mt-2 font-mono">User Keys & IAM Role.</div>
+              </button>
+
+              <button
+              disabled
+              className="p-6 rounded-xl border text-left transition-all opacity-60 cursor-not-allowed bg-[#0F292F]/40 border-[#E8E4D9]/10"
+              >
+              <Cloud className="w-8 h-8 mb-4 text-[#E8E4D9]/60" />
+              <div className="font-medium text-lg font-serif">Google Cloud Platform (GCP)</div>
+              <div className="text-sm text-[#E8E4D9]/50 mt-2 font-mono">Coming soon.</div>
+              </button>
+          </div>
+        )}
+
+        {newResourceType === 'AWS' ? (
+          step === 1 ? renderStepOne() : renderStepTwo()
+        ) : null}
+      </div>
+    );
+  };
 
     const renderSources = () => (
         <div className="max-w-4xl mx-auto">

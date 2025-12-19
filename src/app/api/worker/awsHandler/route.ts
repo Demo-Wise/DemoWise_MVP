@@ -40,9 +40,15 @@ async function handler(req: Request){
         }
 
         const computeConfig = JSON.parse(compute.config);
-        const { arn, accountID, instanceID, instanceType, region } = computeConfig;
+        const { arn, accountID, instanceID, instanceType, region, accessKeyId, secretAccessKey } = computeConfig;
 
-        const stsClient = new STSClient({region: region});
+        const stsClient = new STSClient({
+            region: region,
+            credentials: {
+                accessKeyId: accessKeyId!,
+                secretAccessKey: secretAccessKey!
+            }
+        });
         const assumeRoleCommand = new AssumeRoleCommand({
             RoleArn        : arn,
             RoleSessionName: "DemoWise_Session",
