@@ -45,8 +45,11 @@ async function googleCalendarHandler(
     for (const event of fetchedEvents){
         console.log(`Syncing up: ${event.summary} - ${triggerWord}`)
         if (event.summary?.toLowerCase().includes(triggerWord.toLowerCase())){
-            const start = event.start;
-            const end   = event.end;
+            const startString = event.start?.dateTime || event.start?.date;
+            const endString   = event.end?.dateTime   || event.end?.date;
+
+            const start = new Date(startString);
+            const end   = new Date(endString);
 
             const startMessageID = await scheduleComputeJob(
                 event.id!,
@@ -73,7 +76,7 @@ async function googleCalendarHandler(
                 computeID,
                 triggerID,
                 "STOP",
-                new Date(start.getTime() + stopOffsetMinutes* 60000)
+                new Date(end.getTime() + stopOffsetMinutes* 60000)
             );
 
             jobScheduled++;
