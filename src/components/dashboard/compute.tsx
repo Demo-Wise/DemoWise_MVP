@@ -282,7 +282,7 @@ export const ComputePage: React.FC<ComputeProps> = ({ user, onLogout }) => {
           </h4>
           <div className="bg-[#061418] p-4 rounded border border-[#E8E4D9]/10 text-sm space-y-3">
             <p className="text-[#E8E4D9]/70">
-              1. Go to <a href="https://console.aws.amazon.com/iam/home#/users/create" target="_blank" className="text-[#C9A66B] hover:underline">IAM Users</a> and create a user named <span className="font-mono text-white">VelaiAgent</span>.
+              1. Go to <a href="https://console.aws.amazon.com/iam/home#/users/create" target="_blank" className="text-[#C9A66B] hover:underline">IAM Users</a> and create a user named <span className="font-mono text-white">DemoWiseAgent</span>.
             </p>
             <p className="text-[#E8E4D9]/70">
               2. Attach this <strong>Inline Policy</strong> to allow it to assume roles:
@@ -349,7 +349,7 @@ export const ComputePage: React.FC<ComputeProps> = ({ user, onLogout }) => {
     {
       "Effect": "Allow",
       "Principal": {
-        "AWS": "arn:aws:iam::YOUR_ACCOUNT_ID:user/VelaiAgent"
+        "AWS": "arn:aws:iam::YOUR_ACCOUNT_ID:user/DemoWiseAgent"
       },
       "Action": "sts:AssumeRole",
       "Condition": {
@@ -360,7 +360,7 @@ export const ComputePage: React.FC<ComputeProps> = ({ user, onLogout }) => {
     }
   ]
 }`}</pre>
-               <Button variant="ghost" size="sm" className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 bg-[#E8E4D9]/10" onClick={() => handleCopy(`{ "Version": "2012-10-17", "Statement": [ { "Effect": "Allow", "Principal": { "AWS": "arn:aws:iam::YOUR_ACCOUNT_ID:user/VelaiAgent" }, "Action": "sts:AssumeRole", "Condition": { "StringEquals": { "sts:ExternalId": "${externalId}" } } } ] }`)}>
+               <Button variant="ghost" size="sm" className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 bg-[#E8E4D9]/10" onClick={() => handleCopy(`{ "Version": "2012-10-17", "Statement": [ { "Effect": "Allow", "Principal": { "AWS": "arn:aws:iam::YOUR_ACCOUNT_ID:user/DemoWiseAgent" }, "Action": "sts:AssumeRole", "Condition": { "StringEquals": { "sts:ExternalId": "${externalId}" } } } ] }`)}>
                 <Copy className="w-3 h-3" />
               </Button>
             </div>
@@ -452,7 +452,7 @@ export const ComputePage: React.FC<ComputeProps> = ({ user, onLogout }) => {
                       type="text" 
                       value={newComputeARN}
                       onChange={(e) => setComputeARN(e.target.value)}
-                      placeholder='arn:aws:iam::123456789:role/MyVelaiRole'
+                      placeholder='arn:aws:iam::123456789:role/MyDemoWiseRole'
                       className="w-full bg-[#061418] border border-[#E8E4D9]/20 rounded p-3 text-[#E8E4D9] focus:border-[#C9A66B] focus:outline-none font-mono"
                   />
               </div>
