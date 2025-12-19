@@ -2,7 +2,6 @@ import {
   Calendar, 
   LogOut, 
   Zap, 
-  CheckCircle2, 
   Clock,
   Server,
   Activity,
@@ -11,13 +10,11 @@ import {
   Radio,
   Cpu,
   Workflow,
-  Plus,
   ArrowRight,
-  AlertCircle,
-  RefreshCw,
-  Plug
+  MoreVertical,
+  RefreshCw
 } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { User, CalendarEvent, SignalSource, ComputeResource, ComputeStatus, OrchestrationRule } from '../types';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -36,151 +33,127 @@ export const Overview: React.FC<OverviewProps> = ({user, onLogout}) => {
     const [resources, setResources] = useState<ComputeResource[]>([]);
     const [targetEventIds, setTargetEventIds] = useState<Set<string>>(new Set());
     const [triggers, setTriggers] = useState<OrchestrationRule[]>([]);
-    const [ calendarFetch,  setCalendarFetch ] = useState<boolean>(false);
+    const [isRefreshing, setIsRefreshing] = useState<boolean>(false); // Visual loading state
+    
     const router = useRouter();
-
     const currentView:ViewState = 'OVERVIEW';
 
+    // 1. Clock Ticker
     useEffect(() => {
-            const interval = setInterval(() => {
-            setCurrentTime(new Date());
-            }, 1000); // update every 1 second
-    
-            return () => clearInterval(interval); // cleanup on unmount
-        }, []);
+        const interval = setInterval(() => setCurrentTime(new Date()), 1000);
+        return () => clearInterval(interval);
+    }, []);
 
     const changePage = (view: ViewState) => {
         router.push(`/dashboard/${view.toLowerCase()}`);
     }
 
-    useEffect(() => {
-        const fetchedSignals = async() => {
-            const signalsFromDB = await fetchSignals();
-            setSources(signalsFromDB);
-            
-            const signalID       = signalsFromDB.find(s => s.type === "GOOGLE_CALENDAR")?.id;
-            console.log("signalID: ", signalID);
-            console.log("sources: ", signalsFromDB);
-
-            if (signalID){
-                const calendarEvents = await fetchEvents(signalID!);
-                setEvents(calendarEvents);
-            }
-        }
-
-        const fetchedCompute = async() => {
-            const computeFromDB = await fetchCompute();
-            setResources(computeFromDB);
-        }
-
-        const fetchedTriggers = async() => {
-            const triggersFromDB = await fetchTriggers();
-            setTriggers(triggersFromDB);
-        }
-
-        fetchedSignals();
-        fetchedCompute();
-        fetchedTriggers();
-
-    }, []);
-
-    const fetchSignals = async() => {
-      // retrieving the signal sources from the DB for the user
-      const response = await fetch(`/api/database/get/signal/allUserSignals?userID=${encodeURIComponent(user.userID)}`);
-      const data     = await response.json();
-
-      // returning empty array if no signals found
-      if (!data.signals){
-        console.log("No signals found for the user");
-        return [];
-      }
-
-      // if there are signals, mapping them to SignalSource type
-      const fetchedSources: SignalSource[] = data.signals.map((signal:any) => {
-        return {
-          id       : signal.signalID,
-          type     : signal.platform,
-          name     : signal.signalName || "Unnamed Signal",
-          connected: signal.active,
-          icon     : signal.platform === "GOOGLE_CALENDAR" ? 'calendar': 'slack',
-        }
-      }); 
-
-      return fetchedSources;
-    }
-
-    const fetchCompute = async() =>{
-      const response = await fetch(`/api/database/get/compute/allUserCompute?userID=${encodeURIComponent(user.userID)}`);
-      const data     = await response.json();
-
-      if (!data.compute){
-        console.log("No compute resources found for the user");
-        return [];
-      }
-
-      const fetchedCompute: ComputeResource[] = data.compute.map((comp:any) => ({
-        id           : comp.computeID,
-        name         : comp.computeName,
-        provider     : comp.platform,
-        connected    : comp.active,
-        region       : comp.region,
-        instanceType : JSON.parse(comp.config).instanceType,
-        status       : comp.active? "ACTIVE": "INACTIVE"
-      }));
-
-      return fetchedCompute;
-    }
-
-    const fetchTriggers = async() => {
-            
-        const response = await fetch(`/api/database/get/trigger/allUserTriggers?userID=${encodeURIComponent(user.userID)}`);
+    // 2. Define Fetch Functions with useCallback so they can be reused
+    const fetchSignals = useCallback(async() => {
+        const response = await fetch(`/api/database/get/signal/allUserSignals?userID=${encodeURIComponent(user.userID)}`);
         const data     = await response.json();
+        if (!data.signals) return [];
 
-        if (!data.triggers){
-            console.log("No Triggers found for the user");
-            return [];
-        }
+        return data.signals.map((signal:any) => ({
+            id       : signal.signalID,
+            type     : signal.platform,
+            name     : signal.signalName || "Unnamed Signal",
+            connected: signal.active,
+            icon     : signal.platform === "GOOGLE_CALENDAR" ? 'calendar': 'slack',
+        })); 
+    }, [user.userID]);
 
-        const fetchedTriggers: OrchestrationRule[] = data.triggers.map((trigger:any) => {
-            return {
-                id                : trigger.triggerID,
-                sourceId          : trigger.signalID,
-                triggerKeyword   : trigger.triggerWord,
-                triggerName       : trigger.triggerName,
-                targetResourceId : trigger.computeID,
-                durationBuffer    : trigger.startOffsetMinutes
-            }
-        });
-
-        return fetchedTriggers;
-        
-    }
-
-    const fetchEvents = async(id:string) => {
-        const response = await fetch(`/api/calendar/getEvents?signalID=${encodeURIComponent(id)}&days=${encodeURIComponent(60)}`);
+    const fetchEvents = useCallback(async(signalID: string) => {
+        // Fetch 60 days of events
+        const response = await fetch(`/api/calendar/getEvents?signalID=${encodeURIComponent(signalID)}&days=${encodeURIComponent(60)}`);
         const data     = await response.json().catch(() => null);
 
-        if (!data.events){
-            console.log("Error getting events from the calendar");
-            setCalendarFetch(false);
-            return [];
+        if (!data || !data.events) return [];
+
+        return data.events.map((event:any) => ({
+            id          : event.id,
+            title       : event.summary,
+            start       : event.start,
+            end         : event.end,
+            description : event.description,
+            attendees   : event.attendees  
+        }));
+    }, []);
+
+    const fetchCompute = useCallback(async() =>{
+        const response = await fetch(`/api/database/get/compute/allUserCompute?userID=${encodeURIComponent(user.userID)}`);
+        const data     = await response.json();
+        if (!data.compute) return [];
+
+        return data.compute.map((comp:any) => ({
+            id           : comp.computeID,
+            name         : comp.computeName,
+            provider     : comp.platform,
+            connected    : comp.active,
+            region       : comp.region,
+            instanceType : JSON.parse(comp.config).instanceType,
+            status       : comp.active? "ACTIVE": "INACTIVE"
+        }));
+    }, [user.userID]);
+
+    const fetchTriggers = useCallback(async() => {
+        const response = await fetch(`/api/database/get/trigger/allUserTriggers?userID=${encodeURIComponent(user.userID)}`);
+        const data     = await response.json();
+        if (!data.triggers) return [];
+
+        return data.triggers.map((trigger:any) => ({
+            id                : trigger.triggerID,
+            sourceId          : trigger.signalID,
+            triggerKeyword    : trigger.triggerWord,
+            triggerName       : trigger.triggerName,
+            targetResourceId  : trigger.computeID,
+            durationBuffer    : trigger.startOffsetMinutes
+        }));
+    }, [user.userID]);
+
+
+    // 3. Master Data Refresh Function
+    const refreshAllData = useCallback(async () => {
+        // Don't show loading spinner on background polls, only initial
+        const signalsFromDB = await fetchSignals();
+        setSources(signalsFromDB);
+        
+        const signalID = signalsFromDB.find((s:any) => s.type === "GOOGLE_CALENDAR")?.id;
+        
+        if (signalID){
+            const calendarEvents = await fetchEvents(signalID);
+            // Simple check to avoid re-rendering if data hasn't changed could go here
+            setEvents(calendarEvents); 
         }
 
-        const fetchedEvents : CalendarEvent[] = data.events.map((event:any) => {
-            return {
-                id          : event.id,
-                title       : event.summary,
-                start       : event.start,
-                end         : event.end,
-                description : event.description,
-                attendees   :  event.attendees  
-            }
-        });
-        setCalendarFetch(true);
-        return fetchedEvents;
+        const computeFromDB = await fetchCompute();
+        setResources(computeFromDB);
 
-    }
+        const triggersFromDB = await fetchTriggers();
+        setTriggers(triggersFromDB);
 
+    }, [fetchSignals, fetchEvents, fetchCompute, fetchTriggers]);
+
+
+    // 4. Initial Load & Polling Interval (Auto-Reload)
+    useEffect(() => {
+        const init = async () => {
+            setIsRefreshing(true);
+            await refreshAllData();
+            setIsRefreshing(false);
+        };
+        init();
+
+        // POLL every 10 seconds to check for new events from Webhook updates
+        const pollInterval = setInterval(() => {
+            refreshAllData(); 
+        }, 10000); 
+
+        return () => clearInterval(pollInterval);
+    }, [refreshAllData]);
+
+
+    // ... [SidebarItem helper remains same] ...
     const SidebarItem = ({ icon: Icon, label, view }: { icon: any, label: string, view: ViewState }) => (
         <button 
         onClick={() => changePage(view)}
@@ -195,27 +168,8 @@ export const Overview: React.FC<OverviewProps> = ({user, onLogout}) => {
         </button>
     );
 
-    function groupEventsByDay(events: any[]) {
-        const groups: Record<string, any[]> = {};
-
-        events.forEach(ev => {
-            const dateKey = new Date(ev.start).toISOString().split("T")[0]; // YYYY-MM-DD
-            if (!groups[dateKey]) groups[dateKey] = [];
-            groups[dateKey].push(ev);
-        });
-
-        return groups;
-        }
-
-
-    function drawConnectors() {
-        
-    }
-
-
+    // ... [orchestrationMap helper remains same] ...
     function orchestrationMap(){
-
-
         return (
             <div className="glass-panel flex-1 rounded-xl border border-[#E8E4D9]/10 bg-[#061418]/40 p-8 relative overflow-hidden">
                 <h3 className="font-serif text-xl mb-8 flex items-center gap-2">
@@ -224,10 +178,9 @@ export const Overview: React.FC<OverviewProps> = ({user, onLogout}) => {
                 </h3>
 
                 <div className="relative grid grid-cols-3 gap-8 items-center justify-items-center h-[300px]">
-                    {/* Background Lines */}
                     <div className="absolute top-1/2 left-0 w-full h-px bg-[#E8E4D9]/5 -z-10 transform -translate-y-1/2"></div>
 
-                    {/* Step 1: Signal */}
+                    {/* Signal */}
                     <div className="flex flex-col gap-4 items-center w-full">
                         <div className="text-xs font-mono text-[#E8E4D9]/40 uppercase tracking-widest mb-2">Signal</div>
                         {sources.filter(s => s.connected).map(source => (
@@ -236,33 +189,26 @@ export const Overview: React.FC<OverviewProps> = ({user, onLogout}) => {
                                 {source.type === 'GOOGLE_CALENDAR' ? <Calendar className="w-4 h-4 text-[#C9A66B]"/> : <MessageSquare className="w-4 h-4 text-blue-400"/>}
                             </div>
                             <span className="text-sm font-mono font-medium">{source.name}</span>
-                            
-                            {/* Connector Dot */}
                             <div className="absolute -right-1 w-2 h-2 bg-[#E8E4D9]/40 rounded-full"></div>
                             </div>
                         ))}
-                        {sources.every(s => !s.connected) && (
-                            <div className="p-4 border border-dashed border-[#E8E4D9]/20 rounded text-[#E8E4D9]/30 text-sm">No Signals Connected</div>
+                         {sources.every(s => !s.connected) && (
+                            <div className="p-4 border border-dashed border-[#E8E4D9]/20 rounded text-[#E8E4D9]/30 text-sm">No Signals</div>
                         )}
                     </div>
 
-                    {/* Step 2: Processor/Logic */}
+                    {/* Logic */}
                     <div className="flex flex-col items-center justify-center ai-logic">
                         <div className="text-xs font-mono text-[#E8E4D9]/40 uppercase tracking-widest mb-4">Logic</div>
                         <div className="w-32 h-32 rounded-full border border-[#C9A66B]/30 bg-[#0F292F]/80 backdrop-blur flex flex-col items-center justify-center relative animate-pulse">
                             <Zap className="w-8 h-8 text-[#C9A66B] mb-2" />
                             <span className="text-xs font-mono text-[#C9A66B]">AI ENGINE</span>
-                            
-                            {/* Connecting Lines Visual */}
                             <div className="absolute -left-4 top-1/2 w-4 h-px bg-[#C9A66B]/30"></div>
                             <div className="absolute -right-4 top-1/2 w-4 h-px bg-[#C9A66B]/30"></div>
                         </div>
-                        <div className="mt-4 text-xs text-[#E8E4D9]/50 font-mono text-center">
-                            Detecting "Demo"<br/>& Workload patterns
-                        </div>
                     </div>
 
-                    {/* Step 3: Resource */}
+                    {/* Compute */}
                     <div className="flex flex-col gap-4 items-center w-full">
                         <div className="text-xs font-mono text-[#E8E4D9]/40 uppercase tracking-widest mb-2">Compute</div>
                         {resources.filter(r => r.connected).map(res => (
@@ -271,28 +217,24 @@ export const Overview: React.FC<OverviewProps> = ({user, onLogout}) => {
                                 ? 'bg-[#0F292F] border-emerald-500/50 shadow-[0_0_15px_rgba(16,185,129,0.2)]' 
                                 : 'bg-[#061418] border-[#E8E4D9]/20'
                             }`}>
-                            {/* Connector Dot */}
                             <div className={`absolute -left-1 w-2 h-2 rounded-full ${res.status === ComputeStatus.ACTIVE ? 'bg-emerald-400' : 'bg-[#E8E4D9]/40'}`}></div>
-
                             <div className="p-2 bg-[#061418] rounded border border-[#E8E4D9]/10">
                                 <Server className={`w-4 h-4 ${res.status === ComputeStatus.ACTIVE ? 'text-emerald-400' : 'text-[#E8E4D9]/40'}`}/>
                             </div>
                             <div>
                                 <div className="text-sm font-mono font-medium">{res.name}</div>
-                                <div className="text-[10px] font-mono text-[#E8E4D9]/50">{`${res.provider} - ${res.instanceType}`}</div>
+                                <div className="text-[10px] font-mono text-[#E8E4D9]/50">{res.instanceType}</div>
                             </div>
                             </div>
                         ))}
-                        {resources.every(r => !r.connected) && (
-                            <div className="p-4 border border-dashed border-[#E8E4D9]/20 rounded text-[#E8E4D9]/30 text-sm">No Compute Connected</div>
+                         {resources.every(r => !r.connected) && (
+                            <div className="p-4 border border-dashed border-[#E8E4D9]/20 rounded text-[#E8E4D9]/30 text-sm">No Compute</div>
                         )}
                     </div>
                 </div>
                 </div>
         );
     }
-
-    const grouped = groupEventsByDay(events);
 
     const renderOverview = () => {
         return (
@@ -308,7 +250,7 @@ export const Overview: React.FC<OverviewProps> = ({user, onLogout}) => {
                             <Calendar className="w-4 h-4 text-[#C9A66B]" />
                             <h3 className="font-serif text-lg tracking-wide">Schedule</h3>
                         </div>
-                        {<RefreshCw className="w-3 h-3 text-[#E8E4D9]/30 animate-spin"/>}
+                        {isRefreshing && <RefreshCw className="w-3 h-3 text-[#E8E4D9]/30 animate-spin"/>}
                     </div>
 
                     {/* Calendar List */}
@@ -476,7 +418,6 @@ export const Overview: React.FC<OverviewProps> = ({user, onLogout}) => {
                     </div>
                 </Link>
                  
-        
                  <nav className="p-4 space-y-2 flex-1">
                     <div className="text-xs font-mono text-[#E8E4D9]/30 uppercase tracking-widest px-4 mb-2 mt-4">Platform</div>
                     <SidebarItem icon={LayoutDashboard} label="Dashboard" view="OVERVIEW" />
@@ -503,7 +444,6 @@ export const Overview: React.FC<OverviewProps> = ({user, onLogout}) => {
         
               {/* Main Content Area */}
               <main className="flex-1 ml-64 h-screen flex flex-col min-h-0 overflow-hidden">
-                 {/* Top Bar */}
                  <header className="h-20 border-b border-[#E8E4D9]/10 flex items-center justify-between px-8 bg-[#061418]/80 backdrop-blur sticky top-0 z-40">
                     <div className="flex items-center gap-2 text-[#E8E4D9]/50 text-sm font-mono">
                        <span>/</span>
@@ -515,14 +455,11 @@ export const Overview: React.FC<OverviewProps> = ({user, onLogout}) => {
                     </div>
                  </header>
         
-                 {/* Page Content */}
                  <div className="p-8 flex-1 relative min-h-0 overflow-hidden">
                     {renderOverview()}
-                    
                  </div>
               </main>
         
             </div>
           );
-    
 }
