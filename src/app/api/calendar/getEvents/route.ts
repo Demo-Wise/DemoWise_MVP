@@ -36,6 +36,7 @@ export async function GET(req: Request){
         let resp;
 
         if(sync){
+            console.log("Inside sync block");
             resp          = await calendar.events.list({
             calendarId  : "primary",
             timeMin     : timeMin,
