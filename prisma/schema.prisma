@@ -111,7 +111,7 @@ model EventLogger {
   id               Int    @id @default(autoincrement())
   userID           String
   user             User? @relation("userEvent", fields: [userID], references: [userID], onDelete: Cascade)
-  eventID          String @unique
+  eventID          String 
   computeID        String?
   compute          Compute? @relation("computeEvent", fields: [computeID], references: [computeID], onDelete: Cascade)
   signalID         String?

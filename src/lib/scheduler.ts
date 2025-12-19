@@ -88,8 +88,8 @@ export async function deleteComputeJob( messageID: string){
 
 export async function deleteComputeEvent( eventID: string){
     try{
-        const eventStart = await prisma.eventLogger.findUnique({where: {eventID: eventID, action: "START"}});
-        const eventStop  = await prisma.eventLogger.findUnique({where: {eventID: eventID, action: "STOP"}});
+        const eventStart = await prisma.eventLogger.findFirst({where: {eventID: eventID, action: "START"}});
+        const eventStop  = await prisma.eventLogger.findFirst({where: {eventID: eventID, action: "STOP"}});
 
         await deleteComputeJob(eventStart?.qstashId!);
         await deleteComputeJob(eventStop?.qstashId!);

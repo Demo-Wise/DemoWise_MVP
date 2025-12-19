@@ -90,7 +90,7 @@ export async function POST(request: Request){
                 const isMatch = summary.includes(keyword);
 
 
-                const existingJob = await prisma.eventLogger.findUnique({
+                const existingJob = await prisma.eventLogger.findFirst({
                     where: {
                         eventID  : eventID,
                         signalID : channelID
