@@ -30,7 +30,7 @@ async function googleCalendarHandler(
     const refreshToken = signalConfig.refresh_token;
 
     // fetching last 6 months of events
-    const fetchResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/calendar/getEvents?signalID=${encodeURIComponent(signal.signalID)}&days=${encodeURIComponent(180)}`);
+    const fetchResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/calendar/getEvents?signalID=${encodeURIComponent(signal.signalID)}&days=${encodeURIComponent(180)}&sync=${encodeURIComponent(true)}`);
     const body          = await fetchResponse.json().catch(() => null);
 
     if(!body.ok){
@@ -42,7 +42,7 @@ async function googleCalendarHandler(
     const nextSyncToken = body.nextSyncToken;
 
     console.log("Get Events body: ", body);
-    
+
     let jobScheduled    = 0;
 
     for (const event of fetchedEvents){

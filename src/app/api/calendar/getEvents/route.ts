@@ -8,6 +8,7 @@ export async function GET(req: Request){
         const { searchParams } = new URL(req.url);
         const signalID         = searchParams.get('signalID');
         const days             = Number(searchParams.get("days"));
+        const sync             = Boolean(searchParams.get('sync'));
 
         console.log(`signalID: ${signalID} days: ${days}`);
 
@@ -32,14 +33,26 @@ export async function GET(req: Request){
         const timeMin       = dayjs().toISOString();
         const timeMax       = dayjs().add(days, 'day').toISOString();
 
-        const resp          = await calendar.events.list({
+        let resp;
+
+        if(sync){
+            resp          = await calendar.events.list({
+            calendarId  : "primary",
+            timeMin     : timeMin,
+            singleEvents: true,
+            orderBy     : "startTime",
+            maxResults  : 2500
+            });
+        } else {
+            resp          = await calendar.events.list({
             calendarId  : "primary",
             timeMin     : timeMin,
             timeMax     : timeMax,
             singleEvents: true,
             orderBy     : "startTime",
             maxResults  : 2500
-        });
+            });
+        }
 
         const events       = resp.data.items || [];
         const nextSyncToken= resp.data.nextSyncToken;
