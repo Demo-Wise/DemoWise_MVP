@@ -54,6 +54,10 @@ async function googleCalendarHandler(
             const safeStartOffset = startOffsetMinutes || 0;
             const safeStopOffset  = stopOffsetMinutes  || 0;
 
+            console.log(`Start: ${start} Off: ${safeStartOffset}`);
+            console.log(`End: ${end} Off: ${safeStopOffset}`);
+            console.log(`Start: ${new Date(start.getTime() - safeStartOffset* 60000)} End: ${new Date(end.getTime() + safeStopOffset* 60000)}`)
+
             const startMessageID = await scheduleComputeJob(
                 event.id!,
                 event.summary,
