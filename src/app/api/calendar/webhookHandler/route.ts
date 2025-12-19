@@ -43,6 +43,7 @@ export async function POST(request: Request){
         let nextSyncToken = '';
 
         try{
+            console.log("Last Sync Token: ", signalConfig.lastSyncToken);
             const response = await calendar.events.list(
                 {
                     calendarId   : "primary",
@@ -53,6 +54,7 @@ export async function POST(request: Request){
 
             events        = response.data.items || [];
             nextSyncToken = response.data.nextSyncToken || "";
+            console.log("Next sync token: ", nextSyncToken);
 
         } catch(err:any){
             if (err.code === 410){
@@ -125,7 +127,7 @@ export async function POST(request: Request){
                     const end      = new Date(event.end?.dateTime || event.end?.date || "");
                     const runEnd   = new Date(end.getTime() + trigger.stopOffsetMinutes * 60000);
 
-                    
+
 
                     const startMsgId = scheduleComputeJob(eventID, event.summary!, event.description || "", start, end, trigger.userID, trigger.signalID!, trigger.computeID!, trigger.triggerID!, "START", runStart);
                     const stopMsgId  = scheduleComputeJob(eventID, event.summary!, event.description || "", start, end, trigger.userID, trigger.signalID!, trigger.computeID!, trigger.triggerID!, "STOP",  runEnd);
