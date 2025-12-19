@@ -1,0 +1,130 @@
+// schema.prisma
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+enum Platform {
+  GOOGLE_CALENDAR
+  AWS
+  GCP
+  SLACK
+  AZURE
+  OTHER
+}
+
+enum Actions {
+  START
+  STOP
+}
+
+enum Status {
+  PENDING
+  COMPLETED
+  ERROR
+}
+
+/*
+  Core models
+*/
+
+model User {
+  id        Int       @id @default(autoincrement())
+  userID    String    @unique
+  name      String?
+  email     String?   @unique
+  avatar    String?
+  createdAt DateTime  @default(now())
+
+  signals   Signal[]          @relation("userSignals")
+  computes  Compute[]         @relation("userComputes")
+  triggers  Trigger[]         @relation("userTriggers")
+  events    EventLogger[]     @relation("userEvent")
+}
+
+/*
+  Signal and Compute both get a 'platform' field which indicates
+  what external platform the record corresponds to (Google/AWS/Slack/etc).
+*/
+model Signal {
+  id         Int      @id @default(autoincrement())
+  signalID   String   @unique                // external id if any
+  platform   Platform
+  signalName String?
+  userID     String
+  user       User     @relation("userSignals", fields: [userID], references: [userID], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+  active     Boolean @default(true)
+  config     String
+  // optional list of associated integrations (credentials / provider-specific data)
+  triggers     Trigger[]     @relation("signalTriggers")
+  event        EventLogger[] @relation("signalEvent")
+}
+
+model Compute {
+  id          Int      @id @default(autoincrement())
+  computeID   String   @unique
+  platform    Platform
+  computeName String?
+  provider    String   // e.g., "aws", "gcp" - freeform if you need sub-type
+  userID      String
+  user        User     @relation("userComputes", fields: [userID], references: [userID], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  active      Boolean @default(true)
+  config      String
+  triggers    Trigger[]     @relation("computeTriggers")
+  event       EventLogger[] @relation("computeEvent")
+}
+
+/*
+  Trigger ties user + signal + compute and contains the trigger word.
+*/
+model Trigger {
+  id                 Int      @id @default(autoincrement())
+  triggerID          String   @unique
+  userID             String
+  user               User     @relation("userTriggers", fields: [userID], references: [userID], onDelete: Cascade)
+  signalID           String?     
+  signal             Signal?  @relation("signalTriggers", fields: [signalID], references: [signalID], onDelete: Cascade)
+  computeID          String?
+  compute            Compute? @relation("computeTriggers", fields: [computeID], references: [computeID], onDelete: Cascade)
+
+  triggerWord        String
+  triggerName        String
+  startOffsetMinutes Int      @default(5)
+  stopOffsetMinutes  Int      @default(2)
+  timezone           String?  
+  active             Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  event              EventLogger[] @relation("triggerEvent")
+
+  @@index([triggerWord])
+}
+
+
+model EventLogger {
+  id               Int    @id @default(autoincrement())
+  userID           String
+  user             User? @relation("userEvent", fields: [userID], references: [userID], onDelete: Cascade)
+  eventID          String @unique
+  computeID        String?
+  compute          Compute? @relation("computeEvent", fields: [computeID], references: [computeID], onDelete: Cascade)
+  signalID         String?
+  signal           Signal? @relation("signalEvent", fields: [signalID], references: [signalID], onDelete: Cascade)
+  triggerID        String?
+  trigger          Trigger? @relation("triggerEvent", fields: [triggerID], references: [triggerID], onDelete: Cascade)
+  scheduledAt      DateTime
+  eventName        String
+  eventDesc        String
+  eventStart       DateTime
+  eventEnd         DateTime
+  action           Actions
+  status           Status
+  qstashId         String?
+}
+
