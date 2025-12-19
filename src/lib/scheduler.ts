@@ -46,8 +46,8 @@ export async function scheduleComputeJob(
             trigger      : {
                 connect  : {triggerID: triggerID}
             },
-            eventName    : eventName,
-            eventDesc    : eventDesc,
+            eventName    : eventName || "",
+            eventDesc    : eventDesc || "",
             eventStart   : eventStart,
             eventEnd     : eventEnd,
             action       : action,
