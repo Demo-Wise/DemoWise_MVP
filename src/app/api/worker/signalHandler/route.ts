@@ -45,8 +45,8 @@ async function googleCalendarHandler(
     for (const event of fetchedEvents){
         console.log(`Syncing up: ${event.summary} - ${triggerWord}`)
         if (event.summary?.toLowerCase().includes(triggerWord.toLowerCase())){
-            const startString = event.start?.dateTime || event.start?.date;
-            const endString   = event.end?.dateTime   || event.end?.date;
+            const startString = event.start || event.start?.dateTime || event.start?.date;
+            const endString   = event.end   || event.end?.dateTime   || event.end?.date;
 
             const start = new Date(startString);
             const end   = new Date(endString);
