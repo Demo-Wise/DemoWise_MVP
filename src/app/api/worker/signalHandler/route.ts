@@ -40,6 +40,9 @@ async function googleCalendarHandler(
 
     const fetchedEvents = body.events;
     const nextSyncToken = body.nextSyncToken;
+
+    console.log("Get Events body: ", body);
+    
     let jobScheduled    = 0;
 
     for (const event of fetchedEvents){
@@ -115,9 +118,9 @@ async function googleCalendarHandler(
             data : {
                 config : JSON.stringify({
                     refresh_token : refreshToken,
-                    channelID    : watchResponse.data.id,
-                    resourceID   : watchResponse.data.resourceId,
-                    lastSyncToken: nextSyncToken,
+                    channelID     : watchResponse.data.id,
+                    resourceID    : watchResponse.data.resourceId,
+                    lastSyncToken : nextSyncToken,
                 })
             }
         });
