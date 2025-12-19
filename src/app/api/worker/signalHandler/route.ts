@@ -2,10 +2,8 @@ import { NextResponse } from "next/server";
 import { scheduleComputeJob, deleteComputeEvent } from "@/lib/scheduler";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
-import { randomUUID } from "crypto";
 import { google } from "googleapis";
 import { oauth2ClientFromRefreshToken } from "@/lib/google";
-import { details } from "framer-motion/client";
 
 const BodySchema = z.object({
     userID            : z.string().uuid(),
@@ -44,7 +42,8 @@ async function googleCalendarHandler(
     let jobScheduled    = 0;
 
     for (const event of fetchedEvents){
-        if (event.summary?.toLowerCase().includes(triggerWord)){
+        console.log(`Syncing up: ${event.summary} - ${triggerWord}`)
+        if (event.summary?.toLowerCase().includes(triggerWord.toLowerCase())){
             const start = event.start;
             const end   = event.end;
 
