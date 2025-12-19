@@ -42,6 +42,8 @@ export async function GET(req: Request){
         });
 
         const events       = resp.data.items || [];
+        const nextSyncToken= resp.data.nextSyncToken;
+
         const cleaned      =  events.map(ev => ({
             id          : ev.id,
             summary     : ev.summary || "",
@@ -54,7 +56,7 @@ export async function GET(req: Request){
             attendees   : ev.attendees
         }))
 
-        return NextResponse.json({events: cleaned, ok:true}, {status:200});
+        return NextResponse.json({events: cleaned, ok:true, nextSyncToken:nextSyncToken}, {status:200});
 
 
     } catch(err:any)

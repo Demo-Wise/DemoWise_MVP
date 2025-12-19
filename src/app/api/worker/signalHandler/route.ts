@@ -39,6 +39,7 @@ async function googleCalendarHandler(
     }
 
     const fetchedEvents = body.events;
+    const nextSyncToken = body.nextSyncToken;
     let jobScheduled    = 0;
 
     for (const event of fetchedEvents){
@@ -106,7 +107,7 @@ async function googleCalendarHandler(
                     refresh_token : refreshToken,
                     channelID    : watchResponse.data.id,
                     resourceID   : watchResponse.data.resourceId,
-                    lastSyncToken: watchResponse.data.token,
+                    lastSyncToken: nextSyncToken,
                 })
             }
         });

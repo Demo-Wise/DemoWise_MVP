@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { google } from "googleapis";
 import { oauth2ClientFromRefreshToken } from "@/lib/google";
-import next from "next";
 import { deleteComputeEvent, scheduleComputeJob } from "@/lib/scheduler";
 
 
