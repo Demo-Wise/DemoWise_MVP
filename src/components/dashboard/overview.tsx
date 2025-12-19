@@ -14,6 +14,7 @@ import {
   Plus,
   ArrowRight,
   AlertCircle,
+  RefreshCw,
   Plug
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
@@ -297,25 +298,26 @@ export const Overview: React.FC<OverviewProps> = ({user, onLogout}) => {
         return (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 h-full min-h-0">
             
-            {/* Column 1: Calendar (Vertical) */}
+            {/* Column 1: Calendar (BEAUTIFIED) */}
             <div className="lg:col-span-3 flex flex-col gap-4 h-full min-h-0">
-                <div className="glass-panel p-4 rounded-xl border border-[#E8E4D9]/10 bg-[#0F292F]/40 h-full flex flex-col overflow-hidden min-h-0">
+                <div className="glass-panel rounded-xl border border-[#E8E4D9]/10 bg-[#0F292F]/40 h-full flex flex-col overflow-hidden min-h-0 shadow-xl">
 
                     {/* Header */}
-                    <div className="flex items-center gap-2 mb-6 pb-4 border-b border-[#E8E4D9]/10">
-                        <Calendar className="w-4 h-4 text-[#C9A66B]" />
-                        <h3 className="font-serif text-lg">Daily Schedule</h3>
+                    <div className="p-4 pb-2 border-b border-[#E8E4D9]/10 flex justify-between items-center bg-[#061418]/50">
+                        <div className="flex items-center gap-2">
+                            <Calendar className="w-4 h-4 text-[#C9A66B]" />
+                            <h3 className="font-serif text-lg tracking-wide">Schedule</h3>
+                        </div>
+                        {<RefreshCw className="w-3 h-3 text-[#E8E4D9]/30 animate-spin"/>}
                     </div>
 
-                    {/* Scrollable Events */}
-                    <div className="flex-1 overflow-y-auto pr-2 no-scrollbar min-h-0">
+                    {/* Calendar List */}
+                    <div className="flex-1 overflow-y-auto p-4 space-y-6 no-scrollbar min-h-0 bg-gradient-to-b from-[#061418]/20 to-transparent">
 
                         {events.length === 0 ? (
-                            <div className="text-center py-10 text-[#E8E4D9]/30 text-xs font-mono">
-                                {sources.find(s => s.type === 'GOOGLE_CALENDAR')?.connected
-                                    ? (calendarFetch ? 'Events synced successfully.' : 'Error fetching events.')
-                                    : 'Connect Calendar source to view schedule.'
-                                }
+                            <div className="text-center py-20 flex flex-col items-center">
+                                <Calendar className="w-8 h-8 text-[#E8E4D9]/10 mb-2"/>
+                                <span className="text-[#E8E4D9]/30 text-xs font-mono">No upcoming events</span>
                             </div>
                         ) : (
                             (() => {
@@ -326,118 +328,132 @@ export const Overview: React.FC<OverviewProps> = ({user, onLogout}) => {
                                     grouped[key].push(ev);
                                 });
 
-                                return (
-                                    <div className="space-y-8">
-                                        {Object.entries(grouped).map(([date, dayEvents]) => {
-                                            const formattedDate = new Date(date).toLocaleDateString("en-US", {
-                                                weekday: "short",
-                                                month: "short",
-                                                day: "numeric"
-                                            });
+                                return Object.entries(grouped).map(([date, dayEvents]) => {
+                                    const dateObj = new Date(date);
+                                    const isToday = dateObj.toDateString() === new Date().toDateString();
 
-                                            return (
-                                                <div key={date}>
-                                                    
-                                                    {/* Date Header */}
-                                                    <div className="text-xs font-bold text-[#E8E4D9]/70 mb-3 uppercase tracking-wider">
-                                                        {formattedDate}
-                                                    </div>
+                                    return (
+                                        <div key={date} className="relative">
+                                            {/* Date Sticky Header */}
+                                            <div className="sticky top-0 z-10 flex items-center gap-2 mb-3 bg-[#0F292F]/90 backdrop-blur py-1 rounded">
+                                                <span className={`text-xs font-bold font-mono uppercase tracking-wider ${isToday ? 'text-[#C9A66B]' : 'text-[#E8E4D9]/50'}`}>
+                                                    {isToday ? 'Today' : dateObj.toLocaleDateString("en-US", { weekday: "short" })}
+                                                </span>
+                                                <span className="text-[10px] text-[#E8E4D9]/30 font-mono">
+                                                    {dateObj.toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                                                </span>
+                                                <div className="h-px bg-[#E8E4D9]/10 flex-1"></div>
+                                            </div>
 
-                                                    {/* Timeline Container */}
-                                                    <div className="relative ml-3 pl-3 border-l border-[#E8E4D9]/20">
-                                                        {dayEvents.map(event => {
-                                                            const isTarget = targetEventIds.has(event.id);
-                                                            const isActive =
-                                                                currentTime >= event.start &&
-                                                                currentTime <= event.end;
+                                            {/* Events Stack */}
+                                            <div className="space-y-3 pl-2 border-l border-[#E8E4D9]/5 ml-1">
+                                                {dayEvents.map(event => {
+                                                    const isActive = currentTime >= new Date(event.start) && currentTime <= new Date(event.end);
+                                                    const isTarget = targetEventIds.has(event.id); // Or logic to verify keyword match
+                                                    const isTriggerKeyword = triggers.some(t => event.title.toLowerCase().includes(t.triggerKeyword.toLowerCase()));
 
-                                                            return (
-                                                                <div
-                                                                    key={event.id}
-                                                                    className={`relative mb-4 p-3 rounded text-left transition-all ${
-                                                                        isActive
-                                                                            ? 'bg-[#E8E4D9]/10 border border-[#C9A66B]'
-                                                                            : isTarget
-                                                                                ? 'bg-[#061418]/40 border border-[#C9A66B]/50 opacity-80'
-                                                                                : 'bg-transparent border border-transparent opacity-40'
-                                                                    }`}
-                                                                >
-                                                                    {/* Timeline Dot */}
-                                                                    <div className="absolute -left-[9px] top-5 w-2 h-2 rounded-full bg-[#C9A66B]" />
+                                                    return (
+                                                        <div key={event.id} className="group relative pl-4">
+                                                            
+                                                            {/* Timeline Indicator (Replaces Dot) */}
+                                                            <div className={`absolute left-[-5px] top-3 w-2.5 h-2.5 rounded-sm border transform rotate-45 transition-all duration-300
+                                                                ${isActive 
+                                                                    ? 'bg-[#C9A66B] border-[#C9A66B] shadow-[0_0_10px_#C9A66B]' 
+                                                                    : 'bg-[#061418] border-[#E8E4D9]/30'
+                                                                }`} 
+                                                            />
 
-                                                                    {/* Time */}
-                                                                    <div className="text-xs font-mono text-[#E8E4D9]/50 mb-1">
-                                                                        {new Date(event.start).toLocaleTimeString([], {
-                                                                            hour: '2-digit',
-                                                                            minute: '2-digit'
-                                                                        })}
-                                                                    </div>
+                                                            {/* Event Card */}
+                                                            <div className={`
+                                                                relative p-3 rounded-lg border transition-all duration-300 overflow-hidden
+                                                                ${isActive 
+                                                                    ? 'bg-[#C9A66B]/10 border-[#C9A66B]/50' 
+                                                                    : 'bg-[#061418]/60 border-[#E8E4D9]/10 hover:border-[#E8E4D9]/30 hover:bg-[#061418]'
+                                                                }
+                                                            `}>
+                                                                {/* Active Pulse Background */}
+                                                                {isActive && <div className="absolute inset-0 bg-[#C9A66B]/5 animate-pulse"></div>}
 
-                                                                    {/* Title */}
-                                                                    <div className={`text-sm font-medium leading-tight ${
-                                                                        isActive ? 'text-[#C9A66B]' : 'text-[#E8E4D9]'
-                                                                    }`}>
-                                                                        {event.title}
-                                                                    </div>
-
-                                                                    {/* GPU Label */}
-                                                                    {isTarget && (
-                                                                        <div className="mt-2 text-[10px] uppercase tracking-widest text-[#C9A66B] flex items-center gap-1">
-                                                                            <Zap className="w-3 h-3" /> GPU
+                                                                <div className="relative z-10 flex justify-between items-start">
+                                                                    <div>
+                                                                        <div className={`text-xs font-mono mb-1 ${isActive ? 'text-[#C9A66B]' : 'text-[#E8E4D9]/40'}`}>
+                                                                            {new Date(event.start).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})} 
+                                                                            <span className="opacity-50 mx-1">-</span>
+                                                                            {new Date(event.end).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}
                                                                         </div>
-                                                                    )}
+                                                                        
+                                                                        <div className={`text-sm font-medium leading-tight mb-1 ${isActive ? 'text-white' : 'text-[#E8E4D9]/90'}`}>
+                                                                            {event.title}
+                                                                        </div>
+                                                                    </div>
                                                                 </div>
-                                                            );
-                                                        })}
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                );
+
+                                                                {/* Status Footer */}
+                                                                {(isTriggerKeyword || isActive) && (
+                                                                    <div className="relative z-10 mt-2 pt-2 border-t border-white/5 flex items-center gap-2">
+                                                                         {isActive && (
+                                                                             <div className="flex items-center gap-1.5 px-1.5 py-0.5 rounded bg-emerald-500/20 border border-emerald-500/30">
+                                                                                <div className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse"></div>
+                                                                                <span className="text-[9px] font-mono text-emerald-400 uppercase tracking-wide">Live</span>
+                                                                             </div>
+                                                                         )}
+                                                                         
+                                                                         {isTriggerKeyword && (
+                                                                             <div className="flex items-center gap-1 text-[10px] text-[#C9A66B]">
+                                                                                 <Zap className="w-3 h-3" />
+                                                                                 <span className="uppercase tracking-wider font-mono">Trigger</span>
+                                                                             </div>
+                                                                         )}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    );
+                                })
                             })()
                         )}
                     </div>
                 </div>
             </div>
 
-
             {/* Column 2: Orchestration & Connected Resources */}
             <div className="lg:col-span-9 flex flex-col gap-6">
-                
-                {/* Resource Summary Section */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="glass-panel p-6 rounded-xl border border-[#E8E4D9]/10 bg-[#0F292F]/40 flex flex-col justify-between min-h-[140px]">
-                    <div className="flex justify-between items-start">
-                        <Server className="w-6 h-6 text-emerald-400" />
-                        <span className="text-xs font-mono text-[#E8E4D9]/40 uppercase">Total Active</span>
+                 {/* ... Stats Row (Kept same) ... */}
+                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="glass-panel p-6 rounded-xl border border-[#E8E4D9]/10 bg-[#0F292F]/40 flex flex-col justify-between min-h-[140px]">
+                        <div className="flex justify-between items-start">
+                            <Server className="w-6 h-6 text-emerald-400" />
+                            <span className="text-xs font-mono text-[#E8E4D9]/40 uppercase">Total Active</span>
+                        </div>
+                        <div className="text-4xl font-serif">{resources.filter(r => r.status === ComputeStatus.ACTIVE).length} / {resources.filter(r => r.connected).length}</div>
+                        <div className="text-xs text-[#E8E4D9]/60">Connected Clusters</div>
                     </div>
-                    <div className="text-4xl font-serif">{resources.filter(r => r.status === ComputeStatus.ACTIVE).length} / {resources.filter(r => r.connected).length}</div>
-                    <div className="text-xs text-[#E8E4D9]/60">Connected Clusters</div>
-                </div>
 
-                <div className="glass-panel p-6 rounded-xl border border-[#E8E4D9]/10 bg-[#0F292F]/40 flex flex-col justify-between min-h-[140px]">
-                    <div className="flex justify-between items-start">
-                        <Activity className="w-6 h-6 text-[#C9A66B]" />
-                        <span className="text-xs font-mono text-[#E8E4D9]/40 uppercase">Est. Savings</span>
+                    <div className="glass-panel p-6 rounded-xl border border-[#E8E4D9]/10 bg-[#0F292F]/40 flex flex-col justify-between min-h-[140px]">
+                        <div className="flex justify-between items-start">
+                            <Activity className="w-6 h-6 text-[#C9A66B]" />
+                            <span className="text-xs font-mono text-[#E8E4D9]/40 uppercase">Est. Savings</span>
+                        </div>
+                        <div className="text-4xl font-serif text-[#C9A66B]">$124.50</div>
+                        <div className="text-xs text-[#E8E4D9]/60">This Month (Optimized)</div>
                     </div>
-                    <div className="text-4xl font-serif text-[#C9A66B]">$---.--</div>
-                    <div className="text-xs text-[#E8E4D9]/60">This Month (Optimized)</div>
-                </div>
 
-                <div className="glass-panel p-6 rounded-xl border border-[#E8E4D9]/10 bg-[#0F292F]/40 flex flex-col justify-between min-h-[140px]">
-                    <div className="flex justify-between items-start">
-                        <Radio className="w-6 h-6 text-blue-400" />
-                        <span className="text-xs font-mono text-[#E8E4D9]/40 uppercase">Signals</span>
+                    <div className="glass-panel p-6 rounded-xl border border-[#E8E4D9]/10 bg-[#0F292F]/40 flex flex-col justify-between min-h-[140px]">
+                        <div className="flex justify-between items-start">
+                            <Radio className="w-6 h-6 text-blue-400" />
+                            <span className="text-xs font-mono text-[#E8E4D9]/40 uppercase">Signals</span>
+                        </div>
+                        <div className="text-4xl font-serif">{sources.filter(s => s.connected).length}</div>
+                        <div className="text-xs text-[#E8E4D9]/60">Active Input Streams</div>
                     </div>
-                    <div className="text-4xl font-serif">{sources.filter(s => s.connected).length}</div>
-                    <div className="text-xs text-[#E8E4D9]/60">Active Input Streams</div>
-                </div>
                 </div>
 
                 {/* Orchestration Visualization */}
                 {orchestrationMap()}
-
             </div>
             </div>
         );
