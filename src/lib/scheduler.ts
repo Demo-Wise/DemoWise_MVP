@@ -31,6 +31,9 @@ export async function scheduleComputeJob(
     action    : "START" | "STOP",
     runAt     : Date
 ){
+    const delay  = Math.round((runAt.getTime() - Date.now()) /  1000);
+    if (delay < 0) return;
+    
     const job  = await prisma.eventLogger.create({
         data: {
             eventID      : eventID,
@@ -55,10 +58,6 @@ export async function scheduleComputeJob(
             status       : "PENDING"
         }
     });
-    
-    const delay  = Math.round((runAt.getTime() - Date.now()) /  1000);
-
-    if (delay < 0) return;
     
     const qstashJob = await stash.publishJSON(
         {

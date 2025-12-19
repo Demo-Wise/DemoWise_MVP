@@ -125,6 +125,8 @@ export async function POST(request: Request){
                     const end      = new Date(event.end?.dateTime || event.end?.date || "");
                     const runEnd   = new Date(end.getTime() + trigger.stopOffsetMinutes * 60000);
 
+                    
+
                     const startMsgId = scheduleComputeJob(eventID, event.summary!, event.description || "", start, end, trigger.userID, trigger.signalID!, trigger.computeID!, trigger.triggerID!, "START", runStart);
                     const stopMsgId  = scheduleComputeJob(eventID, event.summary!, event.description || "", start, end, trigger.userID, trigger.signalID!, trigger.computeID!, trigger.triggerID!, "STOP",  runEnd);
                 }
