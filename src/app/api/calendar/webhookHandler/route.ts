@@ -105,11 +105,11 @@ export async function POST(request: Request){
                     if(existingJob){
                         console.log(`Removing the event: ${eventID}}`);
                         deleteComputeEvent(eventID);
-                        await prisma.eventLogger.deleteMany({
-                            where : {
-                                eventID: eventID
-                            }
-                        });
+                        // await prisma.eventLogger.deleteMany({
+                        //     where : {
+                        //         eventID: eventID
+                        //     }
+                        // });
                     }
                 }
 
