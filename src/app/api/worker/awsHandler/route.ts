@@ -89,12 +89,23 @@ async function handler(req: Request){
 
         console.log(`Acting as ${arn} to ${job.action} at Instance: ${instanceID}`);
 
-        if (job.action === "START"){
-            await ec2Client.send( new StartInstancesCommand({InstanceIds: [instanceID]}));
-        } else{
-            await ec2Client.send( new StopInstancesCommand({InstanceIds: [instanceID]}));
+        try{
+            if (job.action === "START"){
+                await ec2Client.send( new StartInstancesCommand({InstanceIds: [instanceID]}));
+            } else{
+                await ec2Client.send( new StopInstancesCommand({InstanceIds: [instanceID]}));
+            }
+        } catch(err:any){
+            await prisma.eventLogger.update({
+                where:{
+                    id: jobID
+                },
+                data : {
+                    status: "ERROR"
+                }
+            });
         }
-
+        
         await prisma.eventLogger.update({
             where:{
                 id: jobID
