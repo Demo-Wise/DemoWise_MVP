@@ -41,9 +41,14 @@ async function handler(req: Request){
 
         const computeConfig = JSON.parse(compute.config);
         const { arn, accountID, instanceID, instanceType, region, accessKeyId, secretAccessKey } = computeConfig;
-
+        let regionRefined;
+        
+        if (/[0-9][a-z]$/.test(region)) {
+            console.log(`Detected Availability Zone ${region}, converting to Region...`);
+            regionRefined = region.slice(0, -1); // Remove the last character
+        }
         const stsClient = new STSClient({
-            region: region,
+            region: regionRefined,
             credentials: {
                 accessKeyId: accessKeyId!,
                 secretAccessKey: secretAccessKey!
@@ -71,7 +76,7 @@ async function handler(req: Request){
         }
 
         const ec2Client = new EC2Client({
-            region: region,
+            region: regionRefined,
             credentials: {
                 accessKeyId    : credentials.AccessKeyId!,
                 secretAccessKey: credentials.SecretAccessKey!,
