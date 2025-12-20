@@ -290,14 +290,15 @@ export const ComputePage: React.FC<ComputeProps> = ({ user, onLogout }) => {
             
             <div className="bg-black/40 p-3 rounded border border-[#E8E4D9]/10 font-mono text-xs text-[#E8E4D9]/60 relative group">
               <pre>{`{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": "sts:AssumeRole",
-      "Resource": "*"
-    }
-  ]
+	"Version": "2012-10-17",
+	"Statement": [
+		{
+			"Sid": "AllowAssumingSpecificRole",
+			"Effect": "Allow",
+			"Action": "sts:AssumeRole",
+			"Resource": "arn:aws:iam::YOUR_ACCOUNT_ID:role/AI_Infra_Testing"
+		}
+	]
 }`}</pre>
                <Button variant="ghost" size="sm" className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 bg-[#E8E4D9]/10" onClick={() => handleCopy(`{ "Version": "2012-10-17", "Statement": [ { "Effect": "Allow", "Action": "sts:AssumeRole", "Resource": "*" } ] }`)}>
                 <Copy className="w-3 h-3" />
@@ -375,6 +376,25 @@ export const ComputePage: React.FC<ComputeProps> = ({ user, onLogout }) => {
             <p className="text-[#E8E4D9]/70">
               3. <strong>Permissions:</strong> Add the inline policy for EC2 control (Start/Stop instances).
             </p>
+            <div className="bg-black/40 p-3 rounded border border-[#E8E4D9]/10 font-mono text-xs text-[#E8E4D9]/60 relative group">
+              <pre>{`{
+	"Version": "2012-10-17",
+	"Statement": [
+		{
+			"Effect": "Allow",
+			"Action": [
+				"ec2:StartInstances",
+				"ec2:StopInstances",
+				"ec2:DescribeInstances"
+			],
+			"Resource": "*"
+		}
+	]
+}`}</pre>
+               <Button variant="ghost" size="sm" className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 bg-[#E8E4D9]/10" onClick={() => handleCopy(`{ "Version": "2012-10-17", "Statement": [ { "Effect": "Allow", "Principal": { "AWS": "arn:aws:iam::YOUR_ACCOUNT_ID:user/DemoWiseAgent" }, "Action": "sts:AssumeRole", "Condition": { "StringEquals": { "sts:ExternalId": "${externalId}" } } } ] }`)}>
+                <Copy className="w-3 h-3" />
+              </Button>
+            </div>
           </div>
         </div>
 
