@@ -27,6 +27,7 @@ enum Status {
   PENDING
   COMPLETED
   ERROR
+  DELETED
 }
 
 /*

@@ -78,6 +78,16 @@ export async function scheduleComputeJob(
 
 export async function deleteComputeJob( messageID: string){
     try {
+        const job = await prisma.eventLogger.findFirst({
+            where: {qstashId: messageID}
+        });
+
+        if (job) {
+            await prisma.eventLogger.update({
+                where: {id: job.id},
+                data : {status:  "DELETED"}
+            });
+        }
         await stash.messages.delete(messageID);
         console.log("Successfully deleted the Qstash job: ", messageID);
     } catch (err: any){
