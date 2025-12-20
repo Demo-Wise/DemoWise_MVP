@@ -91,7 +91,7 @@ export async function POST(request: Request){
                 const keyword = trigger.triggerWord.toLowerCase() || "";
                 const isMatch = summary.includes(keyword);
 
-
+                console.log(`Keyword: ${keyword} Event Title: ${summary}`);
                 const existingJob = await prisma.eventLogger.findFirst({
                     where: {
                         eventID  : eventID,
@@ -121,14 +121,13 @@ export async function POST(request: Request){
                         deleteComputeEvent(eventID);
                         await prisma.eventLogger.deleteMany({where:{eventID:eventID}});
                     }
-
                     const start    = new Date(event.start?.dateTime || event.start?.date || "");
                     const runStart = new Date(start.getTime() - trigger.startOffsetMinutes*60000); 
                     const end      = new Date(event.end?.dateTime || event.end?.date || "");
                     const runEnd   = new Date(end.getTime() + trigger.stopOffsetMinutes * 60000);
 
 
-
+                    console.log("Creating a new event job");
                     const startMsgId = scheduleComputeJob(eventID, event.summary!, event.description || "", start, end, trigger.userID, trigger.signalID!, trigger.computeID!, trigger.triggerID!, "START", runStart);
                     const stopMsgId  = scheduleComputeJob(eventID, event.summary!, event.description || "", start, end, trigger.userID, trigger.signalID!, trigger.computeID!, trigger.triggerID!, "STOP",  runEnd);
                 }
