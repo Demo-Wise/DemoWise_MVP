@@ -90,7 +90,7 @@ async function handler(req: Request){
         console.log(`Acting as ${arn} to ${job.action} at Instance: ${instanceID}`);
 
         if (job.action === "START"){
-            await ec2Client.send( new StartInstancesCommand({InstanceIds: instanceID}));
+            await ec2Client.send( new StartInstancesCommand({InstanceIds: [instanceID]}));
         } else{
             await ec2Client.send( new StopInstancesCommand({InstanceIds: [instanceID]}));
         }
