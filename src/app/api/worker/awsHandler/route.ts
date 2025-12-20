@@ -55,31 +55,18 @@ async function handler(req: Request){
             }
         });
 
-        // --- DEBUGGING STEP: WHO AM I? ---
-        try {
-            const identity = await stsClient.send(new GetCallerIdentityCommand({}));
-            console.log("DEBUG: I am logged in as:", identity.Arn);
-            
-            // Check if this ARN matches EXACTLY what is in your Trust Policy
-            if (identity.Arn !== "arn:aws:iam::767828722020:user/AI_infra") {
-                console.error("CRITICAL MISMATCH: Code is using keys for", identity.Arn, "but Role expects user/AI_infra");
-            }
-        } catch (err) {
-            console.error("DEBUG: Credentials are completely invalid:", err);
-        }
-        // ---------------------------------
-
+        console.log(`triggerID: ${job.triggerID} computeID: ${job.computeID}`);
 
         const assumeRoleCommand = new AssumeRoleCommand({
             RoleArn        : arn,
             RoleSessionName: "DemoWise_Session",
-            ExternalId     : job.triggerID ?? undefined
+            ExternalId     : job.computeID ?? undefined
         });
 
         const stsResponse =  await stsClient.send(assumeRoleCommand);
         const credentials =  await stsResponse.Credentials;
 
-        if (instanceType !== "ec-2"){
+        if (instanceType !== "ec2"){
             await prisma.eventLogger.update({where:{id: jobID}, data:{status:"ERROR"}});
             console.log("Currently we only support EC-2 instances only");
             return NextResponse.json({error: `AWS Instance is not EC-2: ${instanceType}`}, {status:400});
