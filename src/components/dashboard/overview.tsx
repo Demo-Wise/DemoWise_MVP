@@ -172,10 +172,16 @@ export const Overview: React.FC<OverviewProps> = ({user, onLogout}) => {
         const activeSources = sources.filter(s => s.connected);
         const activeResources = resources.filter(r => r.connected);
 
+        // Calculate Y for the cards (Side Columns)
+        // These are also shifted slightly down by their column headers ("Signal", "Compute")
         const getY = (index: number, total: number) => {
-            const centerY = 150;
-            const itemHeight = 90;
-            const startY = centerY - ((total - 1) * itemHeight) / 2;
+            const containerCenter = 150; 
+            const verticalOffset = 10; // Compensates for the "Signal/Compute" text headers
+            const itemHeight = 90; 
+            
+            // Calculate center of the "Stack" of cards
+            const stackCenter = containerCenter + verticalOffset;
+            const startY = stackCenter - ((total - 1) * itemHeight) / 2;
             return startY + (index * itemHeight);
         };
 
@@ -211,13 +217,10 @@ export const Overview: React.FC<OverviewProps> = ({user, onLogout}) => {
 
                             const sourceY = getY(sourceIndex, activeSources.length);
                             const targetY = getY(targetIndex, activeResources.length);
-                            const centerY = 150;
-
-                            // TUNED COORDINATES (Percentages of width)
-                            // Signal Dot (Right Edge) ≈ 28%
-                            // AI Logic Circle (Left Edge) ≈ 46%
-                            // AI Logic Circle (Right Edge) ≈ 54%
-                            // Compute Dot (Left Edge) ≈ 72%
+                            
+                            // ADJUSTED CENTER: 165px matches the visual center of the AI Circle
+                            // (150px Container Middle + ~15px offset due to the "Logic" text label above it)
+                            const centerY = 165; 
 
                             return (
                                 <g key={trigger.id}>
@@ -282,7 +285,7 @@ export const Overview: React.FC<OverviewProps> = ({user, onLogout}) => {
                                 </div>
                             </div>
                         ))}
-                        {activeSources.length === 0 && (
+                         {activeSources.length === 0 && (
                             <div className="p-4 border border-dashed border-[#E8E4D9]/20 rounded text-[#E8E4D9]/30 text-sm">No Signals</div>
                         )}
                     </div>
@@ -326,7 +329,7 @@ export const Overview: React.FC<OverviewProps> = ({user, onLogout}) => {
                                 </div>
                             </div>
                         ))}
-                        {activeResources.length === 0 && (
+                         {activeResources.length === 0 && (
                             <div className="p-4 border border-dashed border-[#E8E4D9]/20 rounded text-[#E8E4D9]/30 text-sm">No Compute</div>
                         )}
                     </div>
