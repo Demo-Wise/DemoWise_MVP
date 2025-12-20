@@ -169,27 +169,28 @@ export const Overview: React.FC<OverviewProps> = ({user, onLogout}) => {
     );
 
     function orchestrationMap() {
+        // 1. Filter active lists to match what is rendered in the DOM
         const activeSources = sources.filter(s => s.connected);
         const activeResources = resources.filter(r => r.connected);
 
+        // 2. Helper to calculate Y position based on index (assuming ~100px height+gap per item, centered in 300px container)
+        // Center of container is 150px. Item spacing approx 90px.
         const getY = (index: number, total: number) => {
-            const containerCenter = 150; 
-            const verticalOffset = 10; // Compensates for the "Logic" text header pushing the circle down
+            const centerY = 150;
             const itemHeight = 90; 
-            
-            const stackCenter = containerCenter + verticalOffset;
-            const startY = stackCenter - ((total - 1) * itemHeight) / 2;
+            const startY = centerY - ((total - 1) * itemHeight) / 2;
             return startY + (index * itemHeight);
         };
 
         return (
             <div className="glass-panel flex-1 rounded-xl border border-[#E8E4D9]/10 bg-[#061418]/40 p-8 relative overflow-hidden">
+                {/* Inline Styles for the flow animation */}
                 <style jsx>{`
-                    @keyframes flow {
+                    @keyframes flow-animation {
                         to { stroke-dashoffset: -20; }
                     }
-                    .current-flow {
-                        animation: flow 1s linear infinite;
+                    .animate-flow {
+                        animation: flow-animation 1s linear infinite;
                     }
                 `}</style>
 
@@ -200,71 +201,68 @@ export const Overview: React.FC<OverviewProps> = ({user, onLogout}) => {
 
                 <div className="relative grid grid-cols-3 gap-8 items-center justify-items-center h-[300px]">
                     
-                    {/* --- CONNECTION LAYER --- */}
-                    <svg 
-                        className="absolute inset-0 w-full h-full pointer-events-none z-0" 
-                        viewBox="0 0 100 300" 
-                        preserveAspectRatio="none"
-                    >
-                        {triggers.map((trigger) => {
+                    {/* --- CONNECTION LAYER (SVG) --- */}
+                    <svg className="absolute inset-0 w-full h-full pointer-events-none z-0">
+                        {triggers.map((trigger, i) => {
+                            // Find the index of the source and target in the *filtered* lists
                             const sourceIndex = activeSources.findIndex(s => s.id === trigger.sourceId);
                             const targetIndex = activeResources.findIndex(r => r.id === trigger.targetResourceId);
 
+                            // If either end is not connected/active, don't draw the line
                             if (sourceIndex === -1 || targetIndex === -1) return null;
 
                             const sourceY = getY(sourceIndex, activeSources.length);
                             const targetY = getY(targetIndex, activeResources.length);
-                            
-                            // Vertical Center of the AI Circle
-                            const centerY = 165; 
+                            const centerY = 150; // Middle of the AI Engine
 
+                            // Bezier Paths
+                            // Path 1: Source (Left ~16%) -> AI (Center 50%)
+                            // Path 2: AI (Center 50%) -> Target (Right ~84%)
+                            
                             return (
                                 <g key={trigger.id}>
-                                    {/* Path 1: Signal Dot Center (28.5%) -> AI Left Dot Center (42%) */}
+                                    {/* Line 1: Signal to AI */}
                                     <path 
-                                        d={`M 28.5 ${sourceY} C 35 ${sourceY}, 35 ${centerY}, 42 ${centerY}`}
-                                        fill="none"
-                                        stroke="#C9A66B"
-                                        strokeWidth="1.5"
-                                        strokeOpacity="0.2"
-                                        vectorEffect="non-scaling-stroke"
-                                    />
-                                    <path 
-                                        d={`M 28.5 ${sourceY} C 35 ${sourceY}, 35 ${centerY}, 42 ${centerY}`}
+                                        d={`M 17% ${sourceY} C 30% ${sourceY}, 30% ${centerY}, 45% ${centerY}`}
                                         fill="none"
                                         stroke="#C9A66B"
                                         strokeWidth="2"
-                                        strokeDasharray="4 4"
-                                        vectorEffect="non-scaling-stroke"
-                                        className="current-flow"
+                                        strokeOpacity="0.4"
+                                    />
+                                    <path 
+                                        d={`M 17% ${sourceY} C 30% ${sourceY}, 30% ${centerY}, 45% ${centerY}`}
+                                        fill="none"
+                                        stroke="#C9A66B"
+                                        strokeWidth="2"
+                                        strokeDasharray="4,4"
+                                        className="animate-flow"
                                     />
 
-                                    {/* Path 2: AI Right Dot Center (58%) -> Compute Left Dot Center (71.5%) */}
+                                    {/* Line 2: AI to Compute */}
                                     <path 
-                                        d={`M 58 ${centerY} C 65 ${centerY}, 65 ${targetY}, 71.5 ${targetY}`}
-                                        fill="none"
-                                        stroke="#C9A66B"
-                                        strokeWidth="1.5"
-                                        strokeOpacity="0.2"
-                                        vectorEffect="non-scaling-stroke"
-                                    />
-                                    <path 
-                                        d={`M 58 ${centerY} C 65 ${centerY}, 65 ${targetY}, 71.5 ${targetY}`}
+                                        d={`M 55% ${centerY} C 70% ${centerY}, 70% ${targetY}, 83% ${targetY}`}
                                         fill="none"
                                         stroke="#C9A66B"
                                         strokeWidth="2"
-                                        strokeDasharray="4 4"
-                                        vectorEffect="non-scaling-stroke"
-                                        className="current-flow"
+                                        strokeOpacity="0.4"
+                                    />
+                                    <path 
+                                        d={`M 55% ${centerY} C 70% ${centerY}, 70% ${targetY}, 83% ${targetY}`}
+                                        fill="none"
+                                        stroke="#C9A66B"
+                                        strokeWidth="2"
+                                        strokeDasharray="4,4"
+                                        className="animate-flow"
                                     />
                                 </g>
                             );
                         })}
                     </svg>
 
+                    {/* Background Center Line (Subtle) */}
                     <div className="absolute top-1/2 left-0 w-full h-px bg-[#E8E4D9]/5 -z-10 transform -translate-y-1/2"></div>
 
-                    {/* --- 1. SIGNALS --- */}
+                    {/* Column 1: Signal */}
                     <div className="flex flex-col gap-4 items-center w-full justify-center z-10">
                         <div className="text-xs font-mono text-[#E8E4D9]/40 uppercase tracking-widest mb-2">Signal</div>
                         {activeSources.map(source => (
@@ -274,19 +272,19 @@ export const Overview: React.FC<OverviewProps> = ({user, onLogout}) => {
                                 </div>
                                 <span className="text-sm font-mono font-medium">{source.name}</span>
                                 
-                                {/* Connector Dot (Right Edge) */}
+                                {/* Connector Dot (Right Side) */}
                                 <div className={`absolute -right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 bg-[#061418] border border-[#C9A66B] rounded-full z-20 
-                                    ${triggers.some(t => t.sourceId === source.id) ? 'shadow-[0_0_8px_#C9A66B]' : ''}`}>
+                                    ${triggers.some(t => t.sourceId === source.id) ? 'shadow-[0_0_8px_#C9A66B]' : 'opacity-50'}`}>
                                     <div className="w-full h-full bg-[#C9A66B] rounded-full transform scale-50"></div>
                                 </div>
                             </div>
                         ))}
-                        {activeSources.length === 0 && (
+                         {activeSources.length === 0 && (
                             <div className="p-4 border border-dashed border-[#E8E4D9]/20 rounded text-[#E8E4D9]/30 text-sm">No Signals</div>
                         )}
                     </div>
 
-                    {/* --- 2. AI LOGIC --- */}
+                    {/* Column 2: Logic (Center) */}
                     <div className="flex flex-col items-center justify-center ai-logic z-10">
                         <div className="text-xs font-mono text-[#E8E4D9]/40 uppercase tracking-widest mb-4">Logic</div>
                         <div className={`w-32 h-32 rounded-full border border-[#C9A66B]/30 bg-[#0F292F]/80 backdrop-blur flex flex-col items-center justify-center relative 
@@ -295,13 +293,13 @@ export const Overview: React.FC<OverviewProps> = ({user, onLogout}) => {
                             <Zap className={`w-8 h-8 mb-2 transition-colors ${triggers.length > 0 ? 'text-[#C9A66B] animate-pulse' : 'text-[#E8E4D9]/20'}`} />
                             <span className="text-xs font-mono text-[#C9A66B]">AI ENGINE</span>
                             
-                            {/* Connector Dots (Left & Right Edge) */}
+                            {/* Static Connectors on Circle */}
                             <div className="absolute -left-1 top-1/2 -translate-y-1/2 w-2 h-2 bg-[#C9A66B] rounded-full shadow-[0_0_10px_#C9A66B]"></div>
                             <div className="absolute -right-1 top-1/2 -translate-y-1/2 w-2 h-2 bg-[#C9A66B] rounded-full shadow-[0_0_10px_#C9A66B]"></div>
                         </div>
                     </div>
 
-                    {/* --- 3. COMPUTE --- */}
+                    {/* Column 3: Compute */}
                     <div className="flex flex-col gap-4 items-center w-full justify-center z-10">
                         <div className="text-xs font-mono text-[#E8E4D9]/40 uppercase tracking-widest mb-2">Compute</div>
                         {activeResources.map(res => (
@@ -310,7 +308,7 @@ export const Overview: React.FC<OverviewProps> = ({user, onLogout}) => {
                                 ? 'bg-[#0F292F] border-emerald-500/50 shadow-[0_0_15px_rgba(16,185,129,0.2)]' 
                                 : 'bg-[#061418] border-[#E8E4D9]/20'
                             }`}>
-                                {/* Connector Dot (Left Edge) */}
+                                {/* Connector Dot (Left Side) */}
                                 <div className={`absolute -left-1.5 top-1/2 -translate-y-1/2 w-3 h-3 bg-[#061418] border rounded-full z-20 
                                     ${triggers.some(t => t.targetResourceId === res.id) ? 'border-[#C9A66B] shadow-[0_0_8px_#C9A66B]' : 'border-[#E8E4D9]/40 opacity-50'}`}>
                                     <div className={`w-full h-full rounded-full transform scale-50 ${triggers.some(t => t.targetResourceId === res.id) ? 'bg-[#C9A66B]' : 'bg-[#E8E4D9]/40'}`}></div>
@@ -325,7 +323,7 @@ export const Overview: React.FC<OverviewProps> = ({user, onLogout}) => {
                                 </div>
                             </div>
                         ))}
-                        {activeResources.length === 0 && (
+                         {activeResources.length === 0 && (
                             <div className="p-4 border border-dashed border-[#E8E4D9]/20 rounded text-[#E8E4D9]/30 text-sm">No Compute</div>
                         )}
                     </div>
