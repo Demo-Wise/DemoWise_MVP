@@ -1,6 +1,6 @@
 import { NextFetchEvent, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { STSClient, AssumeRoleCommand } from "@aws-sdk/client-sts";
+import { STSClient, AssumeRoleCommand, GetCallerIdentityCommand } from "@aws-sdk/client-sts";
 import { EC2Client, StartInstancesCommand, StopInstancesCommand } from "@aws-sdk/client-ec2";
 import { verifySignatureAppRouter, VerifySignatureConfig } from "@upstash/qstash/dist/nextjs";
 
@@ -54,6 +54,22 @@ async function handler(req: Request){
                 secretAccessKey: secretAccessKey!
             }
         });
+
+        // --- DEBUGGING STEP: WHO AM I? ---
+        try {
+            const identity = await stsClient.send(new GetCallerIdentityCommand({}));
+            console.log("DEBUG: I am logged in as:", identity.Arn);
+            
+            // Check if this ARN matches EXACTLY what is in your Trust Policy
+            if (identity.Arn !== "arn:aws:iam::767828722020:user/AI_infra") {
+                console.error("CRITICAL MISMATCH: Code is using keys for", identity.Arn, "but Role expects user/AI_infra");
+            }
+        } catch (err) {
+            console.error("DEBUG: Credentials are completely invalid:", err);
+        }
+        // ---------------------------------
+
+
         const assumeRoleCommand = new AssumeRoleCommand({
             RoleArn        : arn,
             RoleSessionName: "DemoWise_Session",
@@ -61,7 +77,7 @@ async function handler(req: Request){
         });
 
         const stsResponse =  await stsClient.send(assumeRoleCommand);
-        const credentials =  stsResponse.Credentials;
+        const credentials =  await stsResponse.Credentials;
 
         if (instanceType !== "ec-2"){
             await prisma.eventLogger.update({where:{id: jobID}, data:{status:"ERROR"}});
