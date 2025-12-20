@@ -128,8 +128,8 @@ export async function POST(request: Request){
 
 
                     console.log("Creating a new event job");
-                    const startMsgId = scheduleComputeJob(eventID, event.summary!, event.description || "", start, end, trigger.userID, trigger.signalID!, trigger.computeID!, trigger.triggerID!, "START", runStart);
-                    const stopMsgId  = scheduleComputeJob(eventID, event.summary!, event.description || "", start, end, trigger.userID, trigger.signalID!, trigger.computeID!, trigger.triggerID!, "STOP",  runEnd);
+                    const startMsgId = await scheduleComputeJob(eventID, event.summary!, event.description || "", start, end, trigger.userID, trigger.signalID!, trigger.computeID!, trigger.triggerID!, "START", runStart);
+                    const stopMsgId  = await scheduleComputeJob(eventID, event.summary!, event.description || "", start, end, trigger.userID, trigger.signalID!, trigger.computeID!, trigger.triggerID!, "STOP",  runEnd);
                 }
             }
         }
