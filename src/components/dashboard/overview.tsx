@@ -217,7 +217,7 @@ export const Overview: React.FC<OverviewProps> = ({user, onLogout}) => {
         };
 
         return (
-            <div className="glass-panel flex-1 rounded-xl border border-[#E8E4D9]/10 bg-[#061418]/40 p-8 relative overflow-hidden">
+            <div ref={containerRef} className="glass-panel flex-1 rounded-xl border border-[#E8E4D9]/10 bg-[#061418]/40 p-8 relative overflow-hidden">
                 {/* Inline Styles for the flow animation */}
                 <style jsx>{`
                     @keyframes flow-animation {
@@ -288,7 +288,7 @@ export const Overview: React.FC<OverviewProps> = ({user, onLogout}) => {
                     });
                 })()}
             </svg>
-
+        </div>
 
                     {/* Background Center Line (Subtle) */}
                     <div className="absolute top-1/2 left-0 w-full h-px bg-[#E8E4D9]/5 -z-10 transform -translate-y-1/2"></div>
