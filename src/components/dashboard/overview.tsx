@@ -202,96 +202,62 @@ export const Overview: React.FC<OverviewProps> = ({user, onLogout}) => {
                 <div className="relative grid grid-cols-3 gap-8 items-center justify-items-center h-[300px]">
                     
                     {/* --- CONNECTION LAYER (SVG) --- */}
-                <svg className="absolute inset-0 w-full h-full pointer-events-none z-0">
+                    <svg className="absolute inset-0 w-full h-full pointer-events-none z-0">
+                        {triggers.map((trigger, i) => {
+                            // Find the index of the source and target in the *filtered* lists
+                            const sourceIndex = activeSources.findIndex(s => s.id === trigger.sourceId);
+                            const targetIndex = activeResources.findIndex(r => r.id === trigger.targetResourceId);
 
-                    {/* Glow filter */}
-                    <defs>
-                        <filter id="goldGlow" x="-50%" y="-50%" width="200%" height="200%">
-                            <feGaussianBlur stdDeviation="3" result="blur" />
-                            <feMerge>
-                                <feMergeNode in="blur" />
-                                <feMergeNode in="SourceGraphic" />
-                            </feMerge>
-                        </filter>
-
-                        <linearGradient id="goldFlow" x1="0%" y1="0%" x2="100%" y2="0%">
-                            <stop offset="0%" stopColor="#C9A66B" stopOpacity="0.2" />
-                            <stop offset="50%" stopColor="#C9A66B" stopOpacity="1" />
-                            <stop offset="100%" stopColor="#C9A66B" stopOpacity="0.2" />
-                        </linearGradient>
-                    </defs>
-
-                    {(() => {
-                        /**
-                         * Build unique (sourceId → targetResourceId) pairs
-                         */
-                        const uniquePairs = new Map<string, { sourceId: string; targetId: string }>();
-
-                        triggers.forEach(t => {
-                            const key = `${t.sourceId}__${t.targetResourceId}`;
-                            if (!uniquePairs.has(key)) {
-                                uniquePairs.set(key, {
-                                    sourceId: t.sourceId,
-                                    targetId: t.targetResourceId
-                                });
-                            }
-                        });
-
-                        return Array.from(uniquePairs.values()).map(({ sourceId, targetId }) => {
-                            const sourceIndex = activeSources.findIndex(s => s.id === sourceId);
-                            const targetIndex = activeResources.findIndex(r => r.id === targetId);
-
+                            // If either end is not connected/active, don't draw the line
                             if (sourceIndex === -1 || targetIndex === -1) return null;
 
                             const sourceY = getY(sourceIndex, activeSources.length);
                             const targetY = getY(targetIndex, activeResources.length);
-                            const centerY = 150;
+                            const centerY = 150; // Middle of the AI Engine
 
+                            // Bezier Paths
+                            // Path 1: Source (Left ~16%) -> AI (Center 50%)
+                            // Path 2: AI (Center 50%) -> Target (Right ~84%)
+                            
                             return (
-                                <g key={`${sourceId}-${targetId}`} filter="url(#goldGlow)">
-
-                                    {/* Signal → AI (base glow line) */}
-                                    <path
+                                <g key={trigger.id}>
+                                    {/* Line 1: Signal to AI */}
+                                    <path 
                                         d={`M 17% ${sourceY} C 30% ${sourceY}, 30% ${centerY}, 45% ${centerY}`}
                                         fill="none"
                                         stroke="#C9A66B"
-                                        strokeWidth="3"
-                                        strokeOpacity="0.25"
+                                        strokeWidth="2"
+                                        strokeOpacity="0.4"
                                     />
-
-                                    {/* Signal → AI (animated current) */}
-                                    <path
+                                    <path 
                                         d={`M 17% ${sourceY} C 30% ${sourceY}, 30% ${centerY}, 45% ${centerY}`}
                                         fill="none"
-                                        stroke="url(#goldFlow)"
+                                        stroke="#C9A66B"
                                         strokeWidth="2"
-                                        strokeDasharray="6 8"
+                                        strokeDasharray="4,4"
                                         className="animate-flow"
                                     />
 
-                                    {/* AI → Compute (base glow line) */}
-                                    <path
+                                    {/* Line 2: AI to Compute */}
+                                    <path 
                                         d={`M 55% ${centerY} C 70% ${centerY}, 70% ${targetY}, 83% ${targetY}`}
                                         fill="none"
                                         stroke="#C9A66B"
-                                        strokeWidth="3"
-                                        strokeOpacity="0.25"
+                                        strokeWidth="2"
+                                        strokeOpacity="0.4"
                                     />
-
-                                    {/* AI → Compute (animated current) */}
-                                    <path
+                                    <path 
                                         d={`M 55% ${centerY} C 70% ${centerY}, 70% ${targetY}, 83% ${targetY}`}
                                         fill="none"
-                                        stroke="url(#goldFlow)"
+                                        stroke="#C9A66B"
                                         strokeWidth="2"
-                                        strokeDasharray="6 8"
+                                        strokeDasharray="4,4"
                                         className="animate-flow"
                                     />
                                 </g>
                             );
-                        });
-                    })()}
-                </svg>
+                        })}
+                    </svg>
 
                     {/* Background Center Line (Subtle) */}
                     <div className="absolute top-1/2 left-0 w-full h-px bg-[#E8E4D9]/5 -z-10 transform -translate-y-1/2"></div>
