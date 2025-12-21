@@ -14,7 +14,7 @@ import {
   MoreVertical,
   RefreshCw
 } from 'lucide-react';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { User, CalendarEvent, SignalSource, ComputeResource, ComputeStatus, OrchestrationRule } from '../types';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -34,7 +34,9 @@ export const Overview: React.FC<OverviewProps> = ({user, onLogout}) => {
     const [targetEventIds, setTargetEventIds] = useState<Set<string>>(new Set());
     const [triggers, setTriggers] = useState<OrchestrationRule[]>([]);
     const [isRefreshing, setIsRefreshing] = useState<boolean>(false); // Visual loading state
-    
+
+    const connectorRefs = useRef<Record<string, HTMLDivElement | null>>({});
+
     const router = useRouter();
     const currentView:ViewState = 'OVERVIEW';
 
@@ -168,6 +170,11 @@ export const Overview: React.FC<OverviewProps> = ({user, onLogout}) => {
         </button>
     );
 
+    function center(el: HTMLElement) {
+        const r = el.getBoundingClientRect();
+        return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+        }
+
     function orchestrationMap() {
         // 1. Filter active lists to match what is rendered in the DOM
         const activeSources = sources.filter(s => s.connected);
@@ -203,61 +210,60 @@ export const Overview: React.FC<OverviewProps> = ({user, onLogout}) => {
                     
                     {/* --- CONNECTION LAYER (SVG) --- */}
                     <svg className="absolute inset-0 w-full h-full pointer-events-none z-0">
-                        {triggers.map((trigger, i) => {
-                            // Find the index of the source and target in the *filtered* lists
-                            const sourceIndex = activeSources.findIndex(s => s.id === trigger.sourceId);
-                            const targetIndex = activeResources.findIndex(r => r.id === trigger.targetResourceId);
+                    {(() => {
+                        // 1. Safety Check: If refs aren't ready, draw nothing to prevent crash
+                        if (!connectorRefs.current) return null;
 
-                            // If either end is not connected/active, don't draw the line
-                            if (sourceIndex === -1 || targetIndex === -1) return null;
+                        const uniquePairs = new Map<string, { sourceId: string; targetId: string }>();
 
-                            const sourceY = getY(sourceIndex, activeSources.length);
-                            const targetY = getY(targetIndex, activeResources.length);
-                            const centerY = 150; // Middle of the AI Engine
+                        triggers.forEach(t => {
+                            const key = `${t.sourceId}__${t.targetResourceId}`;
+                            if (!uniquePairs.has(key)) {
+                                uniquePairs.set(key, {
+                                    sourceId: t.sourceId,
+                                    targetId: t.targetResourceId
+                                });
+                            }
+                        });
 
-                            // Bezier Paths
-                            // Path 1: Source (Left ~16%) -> AI (Center 50%)
-                            // Path 2: AI (Center 50%) -> Target (Right ~84%)
-                            
+                        return Array.from(uniquePairs.values()).map(({ sourceId, targetId }) => {
+                            const s = connectorRefs.current[`signal-${sourceId}`];
+                            const aiIn = connectorRefs.current["ai-left"];
+                            const aiOut = connectorRefs.current["ai-right"];
+                            const c = connectorRefs.current[`compute-${targetId}`];
+
+                            // 2. Element Check: If any specific element is missing, skip this line
+                            if (!s || !aiIn || !aiOut || !c) return null;
+
+                            // Ensure 'center' function is defined in your scope or define it here
+                            const p1 = center(s);
+                            const p2 = center(aiIn);
+                            const p3 = center(aiOut);
+                            const p4 = center(c);
+
                             return (
-                                <g key={trigger.id}>
-                                    {/* Line 1: Signal to AI */}
-                                    <path 
-                                        d={`M 17% ${sourceY} C 30% ${sourceY}, 30% ${centerY}, 45% ${centerY}`}
-                                        fill="none"
+                                <g key={`${sourceId}-${targetId}`}>
+                                    {/* Signal → AI (left) */}
+                                    <path
+                                        d={`M ${p1.x} ${p1.y} C ${(p1.x + p2.x) / 2} ${p1.y}, ${(p1.x + p2.x) / 2} ${p2.y}, ${p2.x} ${p2.y}`}
                                         stroke="#C9A66B"
                                         strokeWidth="2"
-                                        strokeOpacity="0.4"
-                                    />
-                                    <path 
-                                        d={`M 17% ${sourceY} C 30% ${sourceY}, 30% ${centerY}, 45% ${centerY}`}
                                         fill="none"
-                                        stroke="#C9A66B"
-                                        strokeWidth="2"
-                                        strokeDasharray="4,4"
-                                        className="animate-flow"
                                     />
 
-                                    {/* Line 2: AI to Compute */}
-                                    <path 
-                                        d={`M 55% ${centerY} C 70% ${centerY}, 70% ${targetY}, 83% ${targetY}`}
-                                        fill="none"
+                                    {/* AI (right) → Compute */}
+                                    <path
+                                        d={`M ${p3.x} ${p3.y} C ${(p3.x + p4.x) / 2} ${p3.y}, ${(p3.x + p4.x) / 2} ${p4.y}, ${p4.x} ${p4.y}`}
                                         stroke="#C9A66B"
                                         strokeWidth="2"
-                                        strokeOpacity="0.4"
-                                    />
-                                    <path 
-                                        d={`M 55% ${centerY} C 70% ${centerY}, 70% ${targetY}, 83% ${targetY}`}
                                         fill="none"
-                                        stroke="#C9A66B"
-                                        strokeWidth="2"
-                                        strokeDasharray="4,4"
-                                        className="animate-flow"
                                     />
                                 </g>
                             );
-                        })}
-                    </svg>
+                        });
+                    })()}
+                </svg>
+
 
                     {/* Background Center Line (Subtle) */}
                     <div className="absolute top-1/2 left-0 w-full h-px bg-[#E8E4D9]/5 -z-10 transform -translate-y-1/2"></div>
@@ -273,7 +279,11 @@ export const Overview: React.FC<OverviewProps> = ({user, onLogout}) => {
                                 <span className="text-sm font-mono font-medium">{source.name}</span>
                                 
                                 {/* Connector Dot (Right Side) */}
-                                <div className={`absolute -right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 bg-[#061418] border border-[#C9A66B] rounded-full z-20 
+                                <div ref={(el) => {
+                                        if (el) connectorRefs.current[`signal-${source.id}`] = el;
+                                        else delete connectorRefs.current[`signal-${source.id}`];
+                                    }} 
+                                    className={`absolute -right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 bg-[#061418] border border-[#C9A66B] rounded-full z-20 
                                     ${triggers.some(t => t.sourceId === source.id) ? 'shadow-[0_0_8px_#C9A66B]' : 'opacity-50'}`}>
                                     <div className="w-full h-full bg-[#C9A66B] rounded-full transform scale-50"></div>
                                 </div>
@@ -294,8 +304,17 @@ export const Overview: React.FC<OverviewProps> = ({user, onLogout}) => {
                             <span className="text-xs font-mono text-[#C9A66B]">AI ENGINE</span>
                             
                             {/* Static Connectors on Circle */}
-                            <div className="absolute -left-1 top-1/2 -translate-y-1/2 w-2 h-2 bg-[#C9A66B] rounded-full shadow-[0_0_10px_#C9A66B]"></div>
-                            <div className="absolute -right-1 top-1/2 -translate-y-1/2 w-2 h-2 bg-[#C9A66B] rounded-full shadow-[0_0_10px_#C9A66B]"></div>
+                            <div ref={(el) => {
+                                    if (el) connectorRefs.current["ai-left"] = el;
+                                    else delete connectorRefs.current["ai-left"];
+                                }} 
+                                className="absolute -left-1 top-1/2 -translate-y-1/2 w-2 h-2 bg-[#C9A66B] rounded-full shadow-[0_0_10px_#C9A66B]"></div>
+                            
+                            <div ref={(el) => {
+                                    if (el) connectorRefs.current["ai-right"] = el;
+                                    else delete connectorRefs.current["ai-right"];
+                                }} 
+                                className="absolute -right-1 top-1/2 -translate-y-1/2 w-2 h-2 bg-[#C9A66B] rounded-full shadow-[0_0_10px_#C9A66B]"></div>
                         </div>
                     </div>
 
@@ -309,7 +328,11 @@ export const Overview: React.FC<OverviewProps> = ({user, onLogout}) => {
                                 : 'bg-[#061418] border-[#E8E4D9]/20'
                             }`}>
                                 {/* Connector Dot (Left Side) */}
-                                <div className={`absolute -left-1.5 top-1/2 -translate-y-1/2 w-3 h-3 bg-[#061418] border rounded-full z-20 
+                                <div ref={(el) => {
+                                        if (el) connectorRefs.current[`compute-${res.id}`] = el;
+                                        else delete connectorRefs.current[`compute-${res.id}`];
+                                    }} 
+                                    className={`absolute -left-1.5 top-1/2 -translate-y-1/2 w-3 h-3 bg-[#061418] border rounded-full z-20 
                                     ${triggers.some(t => t.targetResourceId === res.id) ? 'border-[#C9A66B] shadow-[0_0_8px_#C9A66B]' : 'border-[#E8E4D9]/40 opacity-50'}`}>
                                     <div className={`w-full h-full rounded-full transform scale-50 ${triggers.some(t => t.targetResourceId === res.id) ? 'bg-[#C9A66B]' : 'bg-[#E8E4D9]/40'}`}></div>
                                 </div>
