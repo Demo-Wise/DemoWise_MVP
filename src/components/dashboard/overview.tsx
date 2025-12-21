@@ -177,30 +177,30 @@ export const Overview: React.FC<OverviewProps> = ({user, onLogout}) => {
         return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
         }
 
-    // 2. ADD THIS EFFECT: Triggers the re-render after mount
-    useEffect(() => {
-        const update = () => {
-            if (containerRef.current) {
-                // This setDims call forces React to run the render loop again,
-                // this time WITH the refs populated.
-                setDims({
-                    width: containerRef.current.offsetWidth,
-                    height: containerRef.current.offsetHeight
-                });
-            }
-        };
+    // // 2. ADD THIS EFFECT: Triggers the re-render after mount
+    // useEffect(() => {
+    //     const update = () => {
+    //         if (containerRef.current) {
+    //             // This setDims call forces React to run the render loop again,
+    //             // this time WITH the refs populated.
+    //             setDims({
+    //                 width: containerRef.current.offsetWidth,
+    //                 height: containerRef.current.offsetHeight
+    //             });
+    //         }
+    //     };
 
-        // Wait 100ms for the DOM to settle, then update
-        const timeout = setTimeout(update, 100);
+    //     // Wait 100ms for the DOM to settle, then update
+    //     const timeout = setTimeout(update, 100);
         
-        // Also update if the user resizes the window
-        window.addEventListener('resize', update);
+    //     // Also update if the user resizes the window
+    //     window.addEventListener('resize', update);
         
-        return () => {
-            clearTimeout(timeout);
-            window.removeEventListener('resize', update);
-        };
-    }, [sources, resources, triggers]); // Re-calculate if data changes
+    //     return () => {
+    //         clearTimeout(timeout);
+    //         window.removeEventListener('resize', update);
+    //     };
+    // }, [sources, resources, triggers]); // Re-calculate if data changes
 
     function orchestrationMap() {
         // 1. Filter active lists to match what is rendered in the DOM
@@ -217,7 +217,7 @@ export const Overview: React.FC<OverviewProps> = ({user, onLogout}) => {
         };
 
         return (
-            <div ref={containerRef} className="glass-panel flex-1 rounded-xl border border-[#E8E4D9]/10 bg-[#061418]/40 p-8 relative overflow-hidden">
+            <div className="glass-panel flex-1 rounded-xl border border-[#E8E4D9]/10 bg-[#061418]/40 p-8 relative overflow-hidden">
                 {/* Inline Styles for the flow animation */}
                 <style jsx>{`
                     @keyframes flow-animation {
@@ -233,62 +233,64 @@ export const Overview: React.FC<OverviewProps> = ({user, onLogout}) => {
                     Active Orchestration Map
                 </h3>
 
-                <div ref={containerRef} className="glass-panel flex-1 rounded-xl border border-[#E8E4D9]/10 bg-[#061418]/40 p-8 relative overflow-hidden">
-        
-        {/* ... Header and other UI ... */}
+                <div className="relative grid grid-cols-3 gap-8 items-center justify-items-center h-[300px]">
+                    
+                    {/* --- CONNECTION LAYER (SVG) --- */}
+                    <svg className="absolute inset-0 w-full h-full pointer-events-none z-0">
+                    {(() => {
+                        // 1. Safety Check: If refs aren't ready, draw nothing to prevent crash
+                        if (!connectorRefs.current) return null;
 
-        <div className="relative grid grid-cols-3 gap-8 items-center justify-items-center h-[300px]">
-            
-            {/* 5. THE SVG OVERLAY */}
-            <svg className="absolute inset-0 w-full h-full pointer-events-none z-0">
-                {(() => {
-                    // Safety: If we haven't measured dimensions yet, waiting for re-render
-                    if (dims.width === 0) return null;
-                    if (!connectorRefs.current) return null;
+                        const uniquePairs = new Map<string, { sourceId: string; targetId: string }>();
 
-                    const uniquePairs = new Map();
-                    triggers.forEach(t => {
-                        const key = `${t.sourceId}__${t.targetResourceId}`;
-                        if (!uniquePairs.has(key)) {
-                            uniquePairs.set(key, { sourceId: t.sourceId, targetId: t.targetResourceId });
-                        }
-                    });
+                        triggers.forEach(t => {
+                            const key = `${t.sourceId}__${t.targetResourceId}`;
+                            if (!uniquePairs.has(key)) {
+                                uniquePairs.set(key, {
+                                    sourceId: t.sourceId,
+                                    targetId: t.targetResourceId
+                                });
+                            }
+                        });
 
-                    return Array.from(uniquePairs.values()).map(({ sourceId, targetId }) => {
-                        const s = connectorRefs.current[`signal-${sourceId}`];
-                        const aiIn = connectorRefs.current["ai-left"];
-                        const aiOut = connectorRefs.current["ai-right"];
-                        const c = connectorRefs.current[`compute-${targetId}`];
+                        return Array.from(uniquePairs.values()).map(({ sourceId, targetId }) => {
+                            const s = connectorRefs.current[`signal-${sourceId}`];
+                            const aiIn = connectorRefs.current["ai-left"];
+                            const aiOut = connectorRefs.current["ai-right"];
+                            const c = connectorRefs.current[`compute-${targetId}`];
 
-                        if (!s || !aiIn || !aiOut || !c) return null;
+                            // 2. Element Check: If any specific element is missing, skip this line
+                            if (!s || !aiIn || !aiOut || !c) return null;
 
-                        const p1 = center(s);
-                        const p2 = center(aiIn);
-                        const p3 = center(aiOut);
-                        const p4 = center(c);
+                            // Ensure 'center' function is defined in your scope or define it here
+                            const p1 = center(s);
+                            const p2 = center(aiIn);
+                            const p3 = center(aiOut);
+                            const p4 = center(c);
 
-                        return (
-                            <g key={`${sourceId}-${targetId}`}>
-                                <path
-                                    d={`M ${p1.x} ${p1.y} C ${(p1.x + p2.x) / 2} ${p1.y}, ${(p1.x + p2.x) / 2} ${p2.y}, ${p2.x} ${p2.y}`}
-                                    stroke="#C9A66B"
-                                    strokeWidth="2"
-                                    fill="none"
-                                    strokeOpacity="0.4"
-                                />
-                                <path
-                                    d={`M ${p3.x} ${p3.y} C ${(p3.x + p4.x) / 2} ${p3.y}, ${(p3.x + p4.x) / 2} ${p4.y}, ${p4.x} ${p4.y}`}
-                                    stroke="#C9A66B"
-                                    strokeWidth="2"
-                                    fill="none"
-                                    strokeOpacity="0.4"
-                                />
-                            </g>
-                        );
-                    });
-                })()}
-            </svg>
-        </div>
+                            return (
+                                <g key={`${sourceId}-${targetId}`}>
+                                    {/* Signal → AI (left) */}
+                                    <path
+                                        d={`M ${p1.x} ${p1.y} C ${(p1.x + p2.x) / 2} ${p1.y}, ${(p1.x + p2.x) / 2} ${p2.y}, ${p2.x} ${p2.y}`}
+                                        stroke="#C9A66B"
+                                        strokeWidth="2"
+                                        fill="none"
+                                    />
+
+                                    {/* AI (right) → Compute */}
+                                    <path
+                                        d={`M ${p3.x} ${p3.y} C ${(p3.x + p4.x) / 2} ${p3.y}, ${(p3.x + p4.x) / 2} ${p4.y}, ${p4.x} ${p4.y}`}
+                                        stroke="#C9A66B"
+                                        strokeWidth="2"
+                                        fill="none"
+                                    />
+                                </g>
+                            );
+                        });
+                    })()}
+                </svg>
+
 
                     {/* Background Center Line (Subtle) */}
                     <div className="absolute top-1/2 left-0 w-full h-px bg-[#E8E4D9]/5 -z-10 transform -translate-y-1/2"></div>
