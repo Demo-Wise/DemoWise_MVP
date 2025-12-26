@@ -382,7 +382,7 @@ export const ComputePage: React.FC<ComputeProps> = ({ user, onLogout }) => {
     {
       "Effect": "Allow",
       "Principal": {
-        "AWS": "arn:aws:iam::YOUR_ACCOUNT_ID:user/DemoWiseAgent"
+        "AWS": "arn:aws:iam::${newAccountID? newAccountID : `YOUR_ACCOUNT_ID`}:user/DemoWiseAgent"
       },
       "Action": "sts:AssumeRole",
       "Condition": {
@@ -393,7 +393,7 @@ export const ComputePage: React.FC<ComputeProps> = ({ user, onLogout }) => {
     }
   ]
 }`}</pre>
-               <Button variant="ghost" size="sm" className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 bg-[#E8E4D9]/10" onClick={() => handleCopy(`{ "Version": "2012-10-17", "Statement": [ { "Effect": "Allow", "Principal": { "AWS": "arn:aws:iam::YOUR_ACCOUNT_ID:user/DemoWiseAgent" }, "Action": "sts:AssumeRole", "Condition": { "StringEquals": { "sts:ExternalId": "${externalId}" } } } ] }`)}>
+               <Button variant="ghost" size="sm" className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 bg-[#E8E4D9]/10" onClick={() => handleCopy(`{ "Version": "2012-10-17", "Statement": [ { "Effect": "Allow", "Principal": { "AWS": "arn:aws:iam::${newAccountID? newAccountID : `YOUR_ACCOUNT_ID`}:user/DemoWiseAgent" }, "Action": "sts:AssumeRole", "Condition": { "StringEquals": { "sts:ExternalId": "${externalId}" } } } ] }`)}>
                 <Copy className="w-3 h-3" />
               </Button>
             </div>
@@ -416,7 +416,20 @@ export const ComputePage: React.FC<ComputeProps> = ({ user, onLogout }) => {
 		}
 	]
 }`}</pre>
-               <Button variant="ghost" size="sm" className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 bg-[#E8E4D9]/10" onClick={() => handleCopy(`{ "Version": "2012-10-17", "Statement": [ { "Effect": "Allow", "Principal": { "AWS": "arn:aws:iam::YOUR_ACCOUNT_ID:user/DemoWiseAgent" }, "Action": "sts:AssumeRole", "Condition": { "StringEquals": { "sts:ExternalId": "${externalId}" } } } ] }`)}>
+               <Button variant="ghost" size="sm" className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 bg-[#E8E4D9]/10" onClick={() => handleCopy(`{
+	"Version": "2012-10-17",
+	"Statement": [
+		{
+			"Effect": "Allow",
+			"Action": [
+				"ec2:StartInstances",
+				"ec2:StopInstances",
+				"ec2:DescribeInstances"
+			],
+			"Resource": "*"
+		}
+	]
+}`)}>
                 <Copy className="w-3 h-3" />
               </Button>
             </div>
