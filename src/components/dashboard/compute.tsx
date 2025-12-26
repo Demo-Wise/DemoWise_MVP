@@ -274,6 +274,21 @@ export const ComputePage: React.FC<ComputeProps> = ({ user, onLogout }) => {
           </div>
         </div>
 
+        <div>
+            <label className="block text-xs font-mono text-[#E8E4D9]/60 uppercase tracking-widest mb-2">Account ID</label>
+            <div className="relative">
+                <input 
+                type="text" 
+                value={newAccountID}
+                onChange={(e) => setAccountID(e.target.value)}
+                placeholder='123456789012'
+                className="w-full bg-[#061418] border border-[#E8E4D9]/20 rounded p-3 text-[#E8E4D9] focus:border-[#C9A66B] focus:outline-none font-mono pl-10"
+                />
+                <Key className="w-4 h-4 text-[#E8E4D9]/30 absolute left-3 top-3.5" />
+            </div>
+        </div>
+
+
         {/* PART A: CREATE USER */}
         <div className="space-y-4">
           <h4 className="font-medium flex items-center gap-2 text-[#E8E4D9]">
@@ -296,11 +311,21 @@ export const ComputePage: React.FC<ComputeProps> = ({ user, onLogout }) => {
 			"Sid": "AllowAssumingSpecificRole",
 			"Effect": "Allow",
 			"Action": "sts:AssumeRole",
-			"Resource": "arn:aws:iam::YOUR_ACCOUNT_ID:role/AI_Infra_Testing"
+			"Resource": "arn:aws:iam::${newAccountID? newAccountID : `YOUR_ACCOUNT_ID`}:role/AI_Infra_Testing"
 		}
 	]
 }`}</pre>
-               <Button variant="ghost" size="sm" className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 bg-[#E8E4D9]/10" onClick={() => handleCopy(`{ "Version": "2012-10-17", "Statement": [ { "Effect": "Allow", "Action": "sts:AssumeRole", "Resource": "*" } ] }`)}>
+               <Button variant="ghost" size="sm" className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 bg-[#E8E4D9]/10" onClick={() => handleCopy(`{
+	"Version": "2012-10-17",
+	"Statement": [
+		{
+			"Sid": "AllowAssumingSpecificRole",
+			"Effect": "Allow",
+			"Action": "sts:AssumeRole",
+			"Resource": "arn:aws:iam::${newAccountID? newAccountID : `YOUR_ACCOUNT_ID`}:role/AI_Infra_Testing"
+		}
+	]
+}`)}>
                 <Copy className="w-3 h-3" />
               </Button>
             </div>
